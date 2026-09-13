@@ -1,0 +1,5 @@
+{
+  "vad": { "first_ms": 0, "interval_ms": 30 },
+  "llm": { "first_ms": 0, "interval_ms": 20 },
+  "tts": { "first_ms": 0, "interval_ms": 5, "late_chunks": 2 }
+}

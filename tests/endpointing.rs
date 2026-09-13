@@ -9,6 +9,54 @@ use voice_runtime::{
 };
 
 #[tokio::test(start_paused = true)]
+async fn vad_backlog_never_turns_unprocessed_continuation_into_silence() {
+    for interval in [25, 30, 40] {
+        let mut config = SessionConfig::default();
+        config.vad.interval_ms = interval;
+        config.llm.first_ms = 0;
+        config.tts.first_ms = 0;
+        let report = tokio::task::LocalSet::new()
+            .run_until(voice_runtime::scenario::run(
+                "B",
+                config,
+                Rc::new(TokioClock::default()),
+            ))
+            .await;
+        let endpoints: Vec<_> = report
+            .events
+            .iter()
+            .filter(|e| e.event_type == "endpoint_committed")
+            .collect();
+        assert_eq!(endpoints.len(), 1, "VAD interval {interval}");
+        assert_eq!(
+            endpoints[0].payload["partial"],
+            "Please book it for Wednesday afternoon."
+        );
+        assert!(!report.events.iter().any(|e| {
+            ["endpoint_committed", "playback_started"].contains(&e.event_type.as_str())
+                && e.timestamp < 1500
+        }));
+        assert!(
+            !report
+                .events
+                .iter()
+                .any(|e| e.event_type == "interruption_decision")
+        );
+        assert_eq!(
+            report.replies[0].heard_text(),
+            report.replies[0].generated_text
+        );
+        assert_eq!(report.active_tasks, 0);
+        assert!(report.queues.iter().all(|q| q.peak <= q.capacity));
+        assert!(
+            voice_runtime::audit::analyze(&report.events)
+                .violations
+                .is_empty()
+        );
+    }
+}
+
+#[tokio::test(start_paused = true)]
 async fn hesitation_policy_generalizes_beyond_function_words_and_fixture_timestamps() {
     tokio::task::LocalSet::new()
         .run_until(async {

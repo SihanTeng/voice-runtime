@@ -10,3 +10,5 @@ SHA-256：`551d3f0282c5d5e1e32e76da97bd3532c38e6f4bb02a32510caf562d7c06ae9c`。
 
 `wav-script.json` 仅用于证明真实 VAD 可以接入 Runtime；里面的文字是人为编写的
 Fake ASR/LLM 测试数据，不是对 WAV 内容的识别结果。所有验收测试无需网络下载或麦克风。
+
+`g711-{ulaw,alaw}-encode.bin` 包含从 -32768 到 32767 的全部 PCM16 样本的编码结果；`g711-{ulaw,alaw}-decode.pcm` 包含码字 0–255 对应的 little-endian PCM16 解码值。这些数值夹具由独立 CPython 3.9.6 `audioop` 生成，用于验证实现，运行测试不需要 Python 音频库。可用 CPython 3.9–3.12 执行 `python3 scripts/generate-g711-vectors.py` 重建；参考实现见 [CPython audioop](https://github.com/python/cpython/blob/3.12/Modules/audioop.c)。夹具是本项目生成的数值数据，没有复制上游源代码。

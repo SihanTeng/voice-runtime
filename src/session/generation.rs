@@ -2,7 +2,7 @@
 use super::{Session, input::InputTurn};
 use crate::{
     event::Identity,
-    playback::{Consumption, Packet},
+    playback::{ChunkRecord, Consumption, Packet},
     queue::{self, QueueMeter},
     transport::{self, AsrInput},
 };
@@ -35,6 +35,8 @@ impl Session {
             "endpoint_committed",
             Some(id),
             json!({"speech_end_ms": turn.last_end, "partial": turn.partial,
+            "observed_silence_ms": turn.silence_samples / 16,
+            "vad_processed_frames": self.processed_frames, "input_admitted_frames": self.admitted_frames.get(),
             "threshold_ms": self.config.endpoint.silence_threshold(&turn.partial)}),
         );
         self.generation = Some(Generation {
@@ -184,11 +186,16 @@ impl Session {
         let id = packet.chunk.identity;
         self.emit("tts_chunk", Some(id), json!(packet.chunk));
         if self.generation.as_ref().is_none_or(|g| g.id != id) {
+            self.record_rejected_audio(&packet, "stale_generation");
             self.stale(id, "tts_chunk");
             return;
         }
         let sequence = packet.chunk.sequence;
+        let mut rejected = ChunkRecord::rejected(&packet.chunk, "");
         if let Err(error) = self.playback.enqueue(packet) {
+            rejected.rejection_reason = Some(error.to_string());
+            self.emit("audio_rejected", Some(id), json!(rejected));
+            let _ = self.playback.record_rejected(id, rejected);
             self.failed = Some(error.to_string());
             return;
         }
@@ -198,6 +205,15 @@ impl Session {
             json!({"chunk_sequence": sequence, "queue_samples": self.playback.depth_samples()}),
         );
         self.start_playback();
+    }
+    pub(super) fn record_rejected_audio(&mut self, packet: &Packet, reason: &str) {
+        if let Err(error) = self.playback.record_rejected(
+            packet.chunk.identity,
+            ChunkRecord::rejected(&packet.chunk, reason),
+        ) {
+            self.failed = Some(error.to_string());
+            self.trace_complete = false;
+        }
     }
     pub(super) fn on_tts_done(&mut self, id: Identity) {
         if let Some(generation) = &mut self.generation

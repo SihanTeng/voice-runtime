@@ -71,6 +71,8 @@ pub struct Session {
     preroll: VecDeque<(AudioFrame, bool)>,
     preroll_meter: QueueMeter,
     frame_validator: FrameValidator,
+    admitted_frames: Rc<Cell<u64>>,
+    processed_frames: u64,
     turn_counter: u64,
     generation_counter: u64,
     accepted_turns: usize,
@@ -95,7 +97,15 @@ impl Session {
         let (status_tx, snapshot) = watch::channel(Snapshot::default());
         let close = CancellationToken::new();
         let reason = Rc::new(Cell::new("active_close"));
-        let handle = SessionHandle::new(input, cancel_tx, snapshot, close.clone(), reason.clone());
+        let admitted_frames = Rc::new(Cell::new(0));
+        let handle = SessionHandle::new(
+            input,
+            cancel_tx,
+            snapshot,
+            close.clone(),
+            reason.clone(),
+            admitted_frames.clone(),
+        );
         let playback = Playback::new(
             sink,
             config.playback_samples,
@@ -127,6 +137,8 @@ impl Session {
                 preroll: VecDeque::new(),
                 preroll_meter,
                 frame_validator: FrameValidator::default(),
+                admitted_frames,
+                processed_frames: 0,
                 turn_counter: 0,
                 generation_counter: 0,
                 accepted_turns: 0,

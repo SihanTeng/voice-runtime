@@ -1,0 +1,3 @@
+{
+  "input_faults": { "seed": 71, "jitter_ms": 9, "drop_every": 23, "reorder_every": 31 }
+}

@@ -51,8 +51,21 @@ pub async fn wait_until(
     .map_err(|_| SessionError::ScenarioDeadline)?
 }
 
-pub async fn run(name: &str, mut config: SessionConfig, clock: Rc<dyn Clock>) -> SessionReport {
+pub async fn run(name: &str, config: SessionConfig, clock: Rc<dyn Clock>) -> SessionReport {
+    run_until_shutdown(name, config, clock, Default::default()).await
+}
+
+pub async fn run_until_shutdown(
+    name: &str,
+    mut config: SessionConfig,
+    clock: Rc<dyn Clock>,
+    shutdown: crate::shutdown::Shutdown,
+) -> SessionReport {
     config.session_id = format!("scenario-{name}");
+    let faulty_input = config.input_faults.enabled();
+    let mut link = crate::impairment::InputLink::new(config.input_faults.clone())
+        .expect("validated input faults");
+    let silence_ms = if faulty_input { 1500 } else { 500 };
     let (session, mut handle) = Session::new(
         config,
         Rc::new(FakeProviders::default()),
@@ -62,72 +75,45 @@ pub async fn run(name: &str, mut config: SessionConfig, clock: Rc<dyn Clock>) ->
     .expect("validated scenario configuration");
     let owner = tokio_util::task::AbortOnDropHandle::new(tokio::task::spawn_local(session.run()));
     // Fault-injected scenarios still return a joined, inspectable trace on early exit.
-    let outcome: Result<(), SessionError> = async {
-        let mut sequence = 0;
+    let feed_scenario = async {
         if name == "B" {
-            feed(
-                &handle,
-                clock.as_ref(),
-                &mut sequence,
-                400,
-                2000,
-                Some(true),
-            )
-            .await?;
-            feed(&handle, clock.as_ref(), &mut sequence, 700, 0, Some(false)).await?;
-            feed(
-                &handle,
-                clock.as_ref(),
-                &mut sequence,
-                400,
-                2000,
-                Some(true),
-            )
-            .await?;
+            link.feed(&handle, clock.as_ref(), 400, 2000, Some(true))
+                .await?;
+            link.feed(&handle, clock.as_ref(), 700, 0, Some(false))
+                .await?;
+            link.feed(&handle, clock.as_ref(), 400, 2000, Some(true))
+                .await?;
         } else {
-            feed(
-                &handle,
-                clock.as_ref(),
-                &mut sequence,
-                800,
-                2000,
-                Some(true),
-            )
-            .await?;
+            link.feed(&handle, clock.as_ref(), 800, 2000, Some(true))
+                .await?;
         }
-        feed(&handle, clock.as_ref(), &mut sequence, 500, 0, Some(false)).await?;
+        link.feed(&handle, clock.as_ref(), silence_ms, 0, Some(false))
+            .await?;
         wait_until(&mut handle, |s| s.started_replies == 1).await?;
         if ["C", "D", "E"].contains(&name) {
             clock
                 .sleep_until(handle.snapshot().first_audio_ms.expect("playback started") + 1200)
                 .await;
             if name == "D" {
-                feed(
-                    &handle,
-                    clock.as_ref(),
-                    &mut sequence,
-                    80,
-                    12_000,
-                    Some(false),
-                )
-                .await?;
+                link.feed(&handle, clock.as_ref(), 80, 12_000, Some(false))
+                    .await?;
             } else {
-                feed(
-                    &handle,
-                    clock.as_ref(),
-                    &mut sequence,
-                    600,
-                    2000,
-                    Some(true),
-                )
-                .await?;
+                link.feed(&handle, clock.as_ref(), 600, 2000, Some(true))
+                    .await?;
             }
-            feed(&handle, clock.as_ref(), &mut sequence, 500, 0, Some(false)).await?;
+            link.feed(&handle, clock.as_ref(), silence_ms, 0, Some(false))
+                .await?;
         }
         wait_until(&mut handle, |s| s.completed_replies >= 1).await?;
         Ok(())
-    }
-    .await;
+    };
+    let outcome: Result<(), SessionError> = tokio::select! { biased;
+        _ = shutdown.cancelled() => {
+            handle.close_with_reason(shutdown.reason().unwrap_or("driver_shutdown"));
+            Err(SessionError::Closed)
+        }
+        result = feed_scenario => result,
+    };
     if outcome.is_err() {
         handle.close_with_reason("scenario_incomplete");
     } else {

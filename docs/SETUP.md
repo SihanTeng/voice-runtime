@@ -4,6 +4,19 @@
 
 ## 1. 安装系统工具
 
+已有 Python 3.9+ 时，优先使用项目入口：
+
+```sh
+./scripts/dev.sh doctor
+./scripts/dev.sh setup
+./scripts/dev.sh demo
+./scripts/dev.sh                 # 保存修改后自动重编译、重启；Ctrl+C 优雅退出
+```
+
+脚本可从其他目录通过绝对路径调用；构建始终在仓库根目录运行，显式 `--config`/`--output` 相对路径按调用者目录解析。无需安装 cargo-watch、Node、pip 包或文件监听服务。Ubuntu/Debian、Fedora 和 Arch 分别提供 apt-get、dnf、pacman 安装命令；`setup --install-system` 才会执行系统安装，普通 setup 只负责固定 Rust 与依赖。macOS 的 Command Line Tools 可能需要等待系统安装窗口完成，然后重跑 setup；没有 Python 时 launcher 会输出安装指引。原生 Windows 请使用 WSL2 的 Linux 终端。
+
+每次运行的日志放在 `output/dev/run-*/`，不会覆盖此前热重载证据。信号退出及重启会先等待当前 session 关闭和日志导出；开发模式没有热替换正在运行的 Rust 函数，也不跨重启保留上下文。
+
 本地验证平台是 macOS Apple Silicon。Linux 提供 Ubuntu/Debian 安装步骤和 GitHub Actions 配置，但未在本次交付中实际执行 Linux/托管 CI；原生 Windows 的 shell/hook 流程未验证，可在已有 WSL Ubuntu 中按 Linux 步骤操作。
 
 **macOS：** 安装 Apple Command Line Tools，提供编译器、链接器和 Git；若已安装可跳过。
@@ -62,7 +75,7 @@ cargo run --locked --release -- run --scenario all --output output
 cargo run --locked --release -- replay output/C/trace.jsonl --output output/replay
 ```
 
-测试应全部成功，默认共 28 项（Cargo 分测试二进制分别输出结果）；32 个属性案例和 8 个并发 session 已包含在这些测试内部。默认使用虚拟时间，完整句 A 的 endpoint 延迟是 240ms，C 的开口→模拟停播是 120ms，所有场景 stale played 为 0。终端命令都应返回 0；可以紧接命令运行 `echo $?` 查看。
+测试应全部成功，默认共 34 项（Cargo 分测试二进制分别输出结果）；32 个属性案例和 8 个并发 session 已包含在这些测试内部。默认使用虚拟时间，完整句 A 的 endpoint 延迟是 240ms，C 的开口→模拟停播是 120ms，所有场景 stale played 为 0。终端命令都应返回 0；可以紧接命令运行 `echo $?` 查看。
 
 | 产物 | 阅读用途 |
 |---|---|
@@ -83,7 +96,7 @@ cargo run --locked --release --features real-vad -- wav tests/fixtures/speech16.
   --script tests/fixtures/wav-script.json --output output/wav
 ```
 
-门禁依次检查 rustfmt、Clippy warnings-as-errors、默认 28 项/全部 features 29 项测试、release 构建和隔离临时 Git 仓库中的 hook 自检；自检忽略系统/全局 Git 配置，不依赖个人签名密钥，不会安装本项目 hook，也不会修改项目的暂存内容。WAV 与脚本已随项目提供，不需额外下载模型；ASR/LLM/TTS 的内容仍是脚本。完整检查会包含真实时钟测试和临时 fixture 编译，耗时比默认虚拟场景长；首次编译时长取决于机器与下载速度，README 的 1–2 秒只指编译后的场景运行。
+门禁依次检查 rustfmt、Clippy warnings-as-errors、默认 34 项/全部 features 35 项 Rust 测试、release 构建、隔离 Git 仓库中的 hook 自检及 2 项开发脚本测试；自检忽略系统/全局 Git 配置，不依赖个人签名密钥，不会安装本项目 hook，也不会修改项目暂存内容。开发脚本 fixture 使用含空格路径，真实启动子进程，验证重启前回收、编译失败恢复和 Ctrl+C。WAV 与脚本随项目提供；ASR/LLM/TTS 仍是脚本。首次编译耗时取决于机器与下载速度，README 的 1–2 秒只指编译后的虚拟场景。
 
 ## 4. 常见问题
 
@@ -101,6 +114,6 @@ cargo run --locked --release --features real-vad -- wav tests/fixtures/speech16.
 
 无需权限或安装条件时，可以直接阅读已提交的 [样例分析](../sample-output/ANALYSIS.md)、[设计说明](../DESIGN.md)和[评审验证记录](../sample-output/review-validation.json)。不应将模拟消费的停播时间当作真实设备或声学测量。
 
-## 5. 本次安装流程验证范围
+## 5. 历史安装流程验证范围
 
 从已提交源码导出到含空格的临时目录，没有 `.git`、没有现成 `target/`，按上述顺序完成默认 28 项测试、A–E、独立 replay 和真实 WAV/VAD。默认测试含首次 debug 编译实际耗时 23.799 秒，全场景命令含首次 release 编译耗时 10.361 秒；replay 指标与在线结果相同，账本和已消费 WAV 逐字节相同。此次复用了本机已安装的 Rust 1.96.1 和 crate 下载缓存，并禁止 Cargo 联网，因此验证的是干净源码/构建目录的可运行性，没有冒充全新操作系统安装或首次下载验证；完整记录见 [setup-validation.json](../sample-output/setup-validation.json)。

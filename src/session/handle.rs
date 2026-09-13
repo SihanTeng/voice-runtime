@@ -33,6 +33,7 @@ pub struct SessionHandle {
     input: queue::Sender<CapturedFrame>,
     cancel: queue::Sender<()>,
     snapshot: watch::Receiver<Snapshot>,
+    admitted_frames: Rc<Cell<u64>>,
 }
 impl SessionHandle {
     pub(super) fn new(
@@ -41,12 +42,14 @@ impl SessionHandle {
         snapshot: watch::Receiver<Snapshot>,
         close: CancellationToken,
         reason: Rc<Cell<&'static str>>,
+        admitted_frames: Rc<Cell<u64>>,
     ) -> Self {
         Self {
             client: Rc::new(Client { close, reason }),
             input,
             cancel,
             snapshot,
+            admitted_frames,
         }
     }
     pub async fn send_audio(&self, audio: AudioFrame) -> Result<(), SessionError> {
@@ -60,7 +63,12 @@ impl SessionHandle {
         audio.validate()?;
         tokio::select! { biased;
             _ = self.client.close.cancelled() => Err(SessionError::Closed),
-            result = self.input.send(CapturedFrame { audio, speech_truth }) => result.map_err(|_| SessionError::Closed),
+            result = self.input.send(CapturedFrame { audio, speech_truth }) => {
+                result.map_err(|_| SessionError::Closed)?;
+                // No await between queue admission and this owner-visible watermark.
+                self.admitted_frames.set(self.admitted_frames.get() + 1);
+                Ok(())
+            },
         }
     }
     pub fn cancel_generation(&self) -> Result<(), SessionError> {

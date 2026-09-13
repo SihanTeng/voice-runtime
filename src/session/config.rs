@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SessionConfig {
+    pub input_faults: crate::impairment::InputFaults,
     pub session_id: String,
     pub endpoint: EndpointConfig,
     pub vad: Timing,
@@ -32,6 +33,7 @@ pub struct SessionConfig {
 impl Default for SessionConfig {
     fn default() -> Self {
         Self {
+            input_faults: Default::default(),
             session_id: "session-1".into(),
             endpoint: EndpointConfig::default(),
             vad: Timing {
@@ -75,7 +77,8 @@ impl Default for SessionConfig {
 }
 impl SessionConfig {
     pub fn validate(&self) -> Result<(), SessionError> {
-        if self.session_id.is_empty()
+        if !self.input_faults.validate()
+            || self.session_id.is_empty()
             || self.session_id.len() > 128
             || [
                 self.input_capacity,

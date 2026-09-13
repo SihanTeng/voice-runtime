@@ -1,0 +1,7 @@
+*.sh text eol=lf
+*.py text eol=lf
+*.wav binary
+*.pcm binary
+*.bin binary
+*.mulaw binary
+*.alaw binary

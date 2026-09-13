@@ -114,6 +114,11 @@ pub fn analyze(events: &[Event]) -> Audit {
                 Ok(chunk) => {
                     if active != Some(generation) || cancelled.contains(&generation) {
                         audit.metrics.stale_chunk_received_count += 1;
+                        if let Some(index) = reply_indices.get(&generation) {
+                            audit.replies[*index]
+                                .chunks
+                                .push(ChunkRecord::rejected(&chunk, "stale_generation"));
+                        }
                     }
                     if chunk.identity != event.identity().unwrap_or_default()
                         || chunk.samples.is_empty()
@@ -153,9 +158,22 @@ pub fn analyze(events: &[Event]) -> Audit {
                         enqueued: true,
                         played_samples: 0,
                         truncated: false,
+                        rejection_reason: None,
                     });
                 } else {
                     audit.violations.push("enqueue without synthesis".into());
+                }
+            }
+            "audio_rejected" => {
+                match serde_json::from_value::<ChunkRecord>(event.payload.clone()) {
+                    Ok(record) => {
+                        if let Some(index) = reply_indices.get(&generation) {
+                            audit.replies[*index].chunks.push(record);
+                        }
+                    }
+                    Err(_) => audit
+                        .violations
+                        .push("invalid rejected chunk record".into()),
                 }
             }
             "playback_started" => {
@@ -197,6 +215,9 @@ pub fn analyze(events: &[Event]) -> Audit {
                                 .chunks
                                 .get_mut(p.chunk_sequence as usize)
                             {
+                                if !chunk.enqueued {
+                                    audit.violations.push("rejected audio consumed".into());
+                                }
                                 chunk.played_samples += p.samples;
                                 if chunk.played_samples > chunk.samples {
                                     audit.violations.push("chunk over-consumed".into());
@@ -291,7 +312,13 @@ pub fn analyze(events: &[Event]) -> Audit {
     let known_truth = events
         .iter()
         .any(|e| e.event_type == "audio_frame" && e.payload["speech_truth"].is_boolean());
-    if known_truth {
+    // A dropped/rejected packet can contain unobserved speech. Do not label a
+    // partial oracle as the actual acoustic overlap or false-interruption count.
+    let incomplete_truth = events.first().is_some_and(|e| {
+        let faults = &e.payload["config"]["input_faults"];
+        faults["drop_every"].is_number() || faults["reorder_every"].is_number()
+    });
+    if known_truth && !incomplete_truth {
         let speech: Vec<(u64, u64)> = events
             .iter()
             .filter(|e| e.event_type == "audio_frame" && e.payload["speech_truth"] == true)

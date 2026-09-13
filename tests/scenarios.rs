@@ -169,6 +169,18 @@ async fn e_two_late_chunks_are_received_but_never_enqueued_or_played() {
         })
         .collect();
     assert_eq!(stale.len(), 2);
+    let rejected: Vec<_> = r.replies[0].chunks.iter().filter(|c| !c.enqueued).collect();
+    assert_eq!(rejected.len(), 2);
+    assert!(rejected.iter().all(|c| c.played_samples == 0
+        && c.truncated
+        && c.rejection_reason.as_deref() == Some("stale_generation")));
+    assert_eq!(
+        r.replies.iter().map(|r| r.chunks.len()).sum::<usize>(),
+        r.events
+            .iter()
+            .filter(|e| e.event_type == "tts_chunk")
+            .count()
+    );
     let cancelled = r
         .events
         .iter()

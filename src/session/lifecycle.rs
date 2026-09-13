@@ -189,7 +189,7 @@ impl Session {
             tokio::select! { biased;
                 Some(output) = self.output.recv() => {
                     match output {
-                        Output::Audio(packet) => { self.emit("tts_chunk", Some(packet.chunk.identity), json!(packet.chunk)); self.stale(packet.chunk.identity, "tts_chunk"); }
+                        Output::Audio(packet) => { self.emit("tts_chunk", Some(packet.chunk.identity), json!(packet.chunk)); self.record_rejected_audio(&packet, "stale_generation"); self.stale(packet.chunk.identity, "tts_chunk"); }
                         Output::Text(id, _) | Output::TtsDone(id) => self.stale(id, "provider_output"),
                         _ => {}
                     }
@@ -210,6 +210,7 @@ impl Session {
                     json!(packet.chunk),
                 );
                 self.stale(packet.chunk.identity, "tts_chunk");
+                self.record_rejected_audio(&packet, "stale_generation");
             }
         }
         self.preroll.clear();

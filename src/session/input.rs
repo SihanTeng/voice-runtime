@@ -13,6 +13,7 @@ pub(super) struct InputTurn {
     onset: u64,
     detected: u64,
     continuous_samples: usize,
+    pub(super) silence_samples: u64,
     pub(super) last_end: u64,
     last_sequence: u64,
     speaking: bool,
@@ -40,6 +41,7 @@ impl Session {
         }
     }
     pub(super) fn on_vad(&mut self, frame: CapturedFrame, voiced: bool) {
+        self.processed_frames += 1;
         let now = self.clock.now_ms();
         let audio = frame.audio;
         let missing = match self.frame_validator.accept(&audio) {
@@ -73,6 +75,7 @@ impl Session {
                 onset: audio.timestamp,
                 detected: now,
                 continuous_samples: 0,
+                silence_samples: 0,
                 last_end: audio.timestamp,
                 last_sequence: audio.sequence,
                 speaking: false,
@@ -97,6 +100,7 @@ impl Session {
             return;
         };
         if voiced {
+            turn.silence_samples = 0;
             if !turn.speaking && turn.confirmed {
                 self.emit(
                     "endpoint_candidate_revoked",
@@ -112,6 +116,7 @@ impl Session {
             turn.last_sequence = audio.sequence;
             turn.speaking = true;
         } else {
+            turn.silence_samples += audio.valid_samples as u64;
             if turn.speaking {
                 self.emit(
                     "speech_end",
@@ -197,13 +202,14 @@ impl Session {
             return;
         }
         self.turn = Some(turn);
+        self.maybe_endpoint();
     }
     pub(super) fn maybe_endpoint(&mut self) {
         let now = self.clock.now_ms();
         let Some(turn) = &self.turn else {
             return;
         };
-        if !turn.confirmed || turn.speaking {
+        if !turn.confirmed || turn.speaking || self.processed_frames != self.admitted_frames.get() {
             return;
         }
         let lag = turn.through.is_none_or(|s| s < turn.last_sequence);
@@ -212,6 +218,12 @@ impl Session {
             return;
         }
         if lag
+            || turn.silence_samples
+                < self
+                    .config
+                    .endpoint
+                    .silence_threshold(&turn.partial)
+                    .saturating_mul(16)
             || now.saturating_sub(turn.last_end)
                 < self.config.endpoint.silence_threshold(&turn.partial)
             || now.saturating_sub(turn.partial_changed) < self.config.endpoint.partial_stability_ms

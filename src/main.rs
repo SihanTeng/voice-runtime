@@ -13,9 +13,11 @@ use voice_runtime::{
     clock::{Clock, TokioClock},
     event,
     fake::FakeProviders,
+    g711::{self, G711Source, Law},
     playback::CountingSink,
     scenario,
     session::{Session, SessionConfig, SessionReport},
+    shutdown::Shutdown,
     wav,
 };
 
@@ -57,6 +59,28 @@ enum Command {
         #[arg(long)]
         real_time: bool,
     },
+    /// Raw mono 8 kHz G.711 input (160-byte packets); scripted ASR/LLM/TTS.
+    G711 {
+        input: PathBuf,
+        #[arg(long, value_enum)]
+        law: Law,
+        #[arg(long)]
+        script: PathBuf,
+        #[arg(long, default_value = "output/g711")]
+        output: PathBuf,
+        #[arg(long)]
+        real_vad: bool,
+        #[arg(long)]
+        real_time: bool,
+    },
+    /// Convert mono PCM16/16 kHz WAV to raw 8 kHz G.711; pad the final packet.
+    G711Encode {
+        input: PathBuf,
+        #[arg(long, value_enum)]
+        law: Law,
+        #[arg(long)]
+        output: PathBuf,
+    },
     /// Independently validate a trace and reconstruct metrics, text truth and played WAV.
     Replay {
         trace: PathBuf,
@@ -80,6 +104,7 @@ fn read_config<T: DeserializeOwned>(path: &Path) -> Result<T> {
 fn truth(replies: &[voice_runtime::playback::ReplyRecord]) -> serde_json::Value {
     json!(replies.iter().map(|r| json!({"identity": r.identity, "generated_text": r.generated_text,
         "enqueued_text": r.enqueued_text(), "heard_text": r.heard_text(), "heard_ranges": r.heard_ranges(),
+        "synthesized_samples": r.chunks.iter().map(|c| c.samples).sum::<usize>(),
         "played_samples": r.played_samples(), "played_duration_ms": r.played_samples() as f64 / 16.0,
         "partial_words": r.partial_words(), "interrupted": r.interrupted, "chunks": r.chunks})).collect::<Vec<_>>())
 }
@@ -99,10 +124,89 @@ fn write_report(output: &Path, report: &SessionReport) -> Result<audit::Metrics>
         return Err(format!("trace/ledger validation failed: {:?}", audit.violations).into());
     }
     wav::export_played(&report.events, &output.join("played.wav"))?;
+    export_phone(output)?;
     Ok(audit.metrics)
 }
 
-async fn execute(command: Command) -> Result<()> {
+fn export_phone(output: &Path) -> Result<()> {
+    for (law, extension) in [(Law::Mulaw, "mulaw"), (Law::Alaw, "alaw")] {
+        g711::encode_wav(
+            &output.join("played.wav"),
+            &output.join(format!("played.{extension}")),
+            law,
+        )?;
+    }
+    Ok(())
+}
+
+async fn run_source<E: std::error::Error + 'static>(
+    input: PathBuf,
+    script: PathBuf,
+    output: PathBuf,
+    source: impl Iterator<Item = std::result::Result<voice_runtime::audio::AudioFrame, E>>,
+    real_vad: bool,
+    format: &str,
+    shutdown: Shutdown,
+) -> Result<()> {
+    if real_vad && !cfg!(feature = "real-vad") {
+        return Err("rebuild with --features real-vad".into());
+    }
+    let mut providers: FakeProviders = read_config(&script)?;
+    providers.validate()?;
+    providers.real_vad = real_vad;
+    let clock: Rc<dyn Clock> = Rc::new(TokioClock::default());
+    let (session, mut handle) = Session::new(
+        SessionConfig::default(),
+        Rc::new(providers.clone()),
+        clock.clone(),
+        Box::<CountingSink>::default(),
+    )?;
+    let owner = tokio_util::task::AbortOnDropHandle::new(tokio::task::spawn_local(session.run()));
+    let feed_source = async {
+        let mut sequence = 0;
+        for frame in source {
+            let frame = frame?;
+            clock.sleep_until(frame.timestamp + 20).await;
+            sequence = frame.sequence + 1;
+            handle.send_audio(frame).await?;
+        }
+        scenario::feed(&handle, clock.as_ref(), &mut sequence, 1500, 0, None).await?;
+        scenario::wait_until(&mut handle, |s| s.idle).await?;
+        Ok(())
+    };
+    let outcome: Result<()> = tokio::select! { biased;
+        _ = shutdown.cancelled() => {
+            handle.close_with_reason(shutdown.reason().unwrap_or("driver_shutdown"));
+            Ok(())
+        }
+        result = feed_source => result,
+    };
+    handle.close_with_reason(if outcome.is_ok() {
+        "active_close"
+    } else {
+        "audio_source_failed"
+    });
+    let report = owner.await?;
+    let metrics = write_report(&output, &report)?;
+    write_json(
+        output.join("manifest.json"),
+        &json!({"input": input, "format": format, "script": script, "providers": providers, "asr": "scripted", "llm": "scripted", "tts": "tone"}),
+    )?;
+    outcome?;
+    if (report.close_reason != "active_close"
+        && Some(report.close_reason.as_str()) != shutdown.reason())
+        || report.events.iter().any(|e| {
+            e.event_type == "provider_failed"
+                || (e.event_type == "turn_failed" && e.payload["reason"] != "session_closing")
+        })
+    {
+        return Err("audio session failed; inspect trace.jsonl".into());
+    }
+    println!("{}", serde_json::to_string_pretty(&metrics)?);
+    Ok(())
+}
+
+async fn execute(command: Command, shutdown: Shutdown) -> Result<()> {
     match command {
         Command::Run {
             scenario: selected,
@@ -144,13 +248,24 @@ async fn execute(command: Command) -> Result<()> {
                 "fixture_version": 1, "audio": "mono PCM16 16000 Hz; 20 ms", "tts": "deterministic tone, not speech"}),
             )?;
             for name in names {
-                let report =
-                    scenario::run(name, config.clone(), Rc::new(TokioClock::default())).await;
-                failed |= report.close_reason != "active_close"
+                let report = scenario::run_until_shutdown(
+                    name,
+                    config.clone(),
+                    Rc::new(TokioClock::default()),
+                    shutdown.clone(),
+                )
+                .await;
+                failed |= (report.close_reason != "active_close"
+                    && Some(report.close_reason.as_str()) != shutdown.reason())
                     || report.events.iter().any(|e| {
-                        e.event_type == "provider_failed" || e.event_type == "turn_failed"
+                        e.event_type == "provider_failed"
+                            || (e.event_type == "turn_failed"
+                                && e.payload["reason"] != "session_closing")
                     });
                 metrics.insert(name, write_report(&output.join(name), &report)?);
+                if shutdown.reason().is_some() {
+                    break;
+                }
             }
             write_json(output.join("metrics.json"), &metrics)?;
             println!("{}", serde_json::to_string_pretty(&metrics)?);
@@ -164,39 +279,40 @@ async fn execute(command: Command) -> Result<()> {
             output,
             ..
         } => {
-            if !cfg!(feature = "real-vad") {
-                return Err("rebuild with --features real-vad".into());
-            }
-            let mut providers: FakeProviders = read_config(&script)?;
-            providers.validate()?;
-            providers.real_vad = true;
             let source = wav::WavSource::new(BufReader::new(File::open(&input)?))?;
-            let clock: Rc<dyn Clock> = Rc::new(TokioClock::default());
-            let (session, mut handle) = Session::new(
-                SessionConfig::default(),
-                Rc::new(providers.clone()),
-                clock.clone(),
-                Box::<CountingSink>::default(),
-            )?;
-            let owner =
-                tokio_util::task::AbortOnDropHandle::new(tokio::task::spawn_local(session.run()));
-            let mut sequence = 0;
-            for frame in source {
-                let frame = frame?;
-                clock.sleep_until(frame.timestamp + 20).await;
-                sequence = frame.sequence + 1;
-                handle.send_audio(frame).await?;
-            }
-            scenario::feed(&handle, clock.as_ref(), &mut sequence, 1500, 0, None).await?;
-            scenario::wait_until(&mut handle, |s| s.idle).await?;
-            handle.close();
-            let report = owner.await?;
-            let metrics = write_report(&output, &report)?;
-            write_json(
-                output.join("manifest.json"),
-                &json!({"input": input, "script": script, "providers": providers, "asr": "scripted", "llm": "scripted", "tts": "tone"}),
-            )?;
-            println!("{}", serde_json::to_string_pretty(&metrics)?);
+            run_source(
+                input,
+                script,
+                output,
+                source,
+                true,
+                "PCM16/16000/mono",
+                shutdown,
+            )
+            .await?;
+        }
+        Command::G711 {
+            input,
+            law,
+            script,
+            output,
+            real_vad,
+            ..
+        } => {
+            let source = G711Source::new(BufReader::new(File::open(&input)?), law);
+            run_source(
+                input,
+                script,
+                output,
+                source,
+                real_vad,
+                &format!("{law:?}/8000/mono"),
+                shutdown,
+            )
+            .await?;
+        }
+        Command::G711Encode { input, law, output } => {
+            g711::encode_wav(&input, &output, law)?;
         }
         Command::Replay { trace, output } => {
             let events = audit::read_jsonl(BufReader::new(File::open(trace)?))?;
@@ -209,6 +325,7 @@ async fn execute(command: Command) -> Result<()> {
                 return Err(format!("invalid trace: {:?}", audit.violations).into());
             }
             wav::export_played(&events, &output.join("played.wav"))?;
+            export_phone(&output)?;
             println!(
                 "Trace verified; stale audio played: {}",
                 audit.metrics.stale_chunk_played_count
@@ -221,15 +338,43 @@ async fn execute(command: Command) -> Result<()> {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     let virtual_time = match &cli.command {
-        Command::Run { real_time, .. } | Command::Wav { real_time, .. } => !real_time,
-        Command::Replay { .. } => true,
+        Command::Run { real_time, .. }
+        | Command::Wav { real_time, .. }
+        | Command::G711 { real_time, .. } => !real_time,
+        Command::Replay { .. } | Command::G711Encode { .. } => true,
     };
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .start_paused(virtual_time)
         .build()?;
     let started = std::time::Instant::now();
-    let result = rt.block_on(tokio::task::LocalSet::new().run_until(execute(cli.command)));
+    let result = rt.block_on(tokio::task::LocalSet::new().run_until(async {
+        let shutdown = Shutdown::default();
+        // Install handlers before starting a session; no detached signal-watcher task.
+        #[cfg(unix)]
+        let mut interrupt = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())?;
+        #[cfg(unix)]
+        let mut terminate = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+        let signal = async {
+            #[cfg(unix)]
+            { tokio::select! { _ = interrupt.recv() => "sigint", _ = terminate.recv() => "sigterm" } }
+            #[cfg(not(unix))]
+            { let _ = tokio::signal::ctrl_c().await; "sigint" }
+        };
+        let execution = execute(cli.command, shutdown.clone());
+        if !virtual_time {
+            eprintln!("Runtime ready; SIGINT/SIGTERM request graceful shutdown.");
+        }
+        tokio::pin!(execution);
+        tokio::select! { biased;
+            reason = signal => {
+                eprintln!("Received {reason}; closing session and exporting trace...");
+                shutdown.request(reason);
+                execution.await
+            }
+            result = &mut execution => result,
+        }
+    }));
     eprintln!(
         "Wall time: {:.3}s; virtual clock: {virtual_time}",
         started.elapsed().as_secs_f64()

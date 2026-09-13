@@ -1260,6 +1260,36 @@
         "truncated": true,
         "word_offset": 2880,
         "word_samples": 3200
+      },
+      {
+        "enqueued": false,
+        "played_samples": 0,
+        "rejection_reason": "stale_generation",
+        "sample_start": 28800,
+        "samples": 320,
+        "sequence": 90,
+        "text_range": {
+          "end": 65,
+          "start": 61
+        },
+        "truncated": true,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": false,
+        "played_samples": 0,
+        "rejection_reason": "stale_generation",
+        "sample_start": 29120,
+        "samples": 320,
+        "sequence": 91,
+        "text_range": {
+          "end": 65,
+          "start": 61
+        },
+        "truncated": true,
+        "word_offset": 320,
+        "word_samples": 3200
       }
     ],
     "enqueued_text": "Certainly I can arrange your booking for Wednesday afternoon ",
@@ -1307,7 +1337,8 @@
       ]
     ],
     "played_duration_ms": 1320.0,
-    "played_samples": 21120
+    "played_samples": 21120,
+    "synthesized_samples": 29440
   },
   {
     "chunks": [
@@ -2332,6 +2363,7 @@
     "interrupted": false,
     "partial_words": [],
     "played_duration_ms": 1400.0,
-    "played_samples": 22400
+    "played_samples": 22400,
+    "synthesized_samples": 22400
   }
 ]

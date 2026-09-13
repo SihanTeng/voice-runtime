@@ -34,7 +34,7 @@
     },
     "journal_fail_after": null,
     "llm": {
-      "first_ms": 80,
+      "first_ms": 0,
       "first_timeout_ms": 1000,
       "idle_timeout_ms": 500,
       "interval_ms": 20,
@@ -58,7 +58,7 @@
     "shutdown_grace_ms": 500,
     "text_capacity": 32,
     "tts": {
-      "first_ms": 60,
+      "first_ms": 0,
       "first_timeout_ms": 1000,
       "idle_timeout_ms": 500,
       "interval_ms": 5,
@@ -74,7 +74,7 @@
       "first_ms": 0,
       "first_timeout_ms": 1000,
       "idle_timeout_ms": 500,
-      "interval_ms": 0,
+      "interval_ms": 30,
       "jitter_ms": 0,
       "late_chunks": 0,
       "late_delay_ms": 0,

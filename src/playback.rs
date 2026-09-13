@@ -35,6 +35,25 @@ pub struct ChunkRecord {
     pub enqueued: bool,
     pub played_samples: usize,
     pub truncated: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rejection_reason: Option<String>,
+}
+
+impl ChunkRecord {
+    pub fn rejected(c: &AudioChunk, reason: &str) -> Self {
+        Self {
+            sequence: c.sequence,
+            text_range: c.text_range.clone(),
+            sample_start: c.sample_start,
+            samples: c.samples.len(),
+            word_samples: c.word_samples,
+            word_offset: c.word_offset,
+            enqueued: false,
+            played_samples: 0,
+            truncated: true,
+            rejection_reason: Some(reason.into()),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -48,7 +67,7 @@ pub struct ReplyRecord {
 impl ReplyRecord {
     pub fn partial_words(&self) -> Vec<(Range<usize>, usize, usize)> {
         let mut words = std::collections::BTreeMap::new();
-        for chunk in &self.chunks {
+        for chunk in self.chunks.iter().filter(|c| c.enqueued) {
             let entry = words
                 .entry((chunk.text_range.start, chunk.text_range.end))
                 .or_insert((0, chunk.word_samples));
@@ -77,7 +96,7 @@ impl ReplyRecord {
         let mut heard = Vec::new();
         let mut range: Option<Range<usize>> = None;
         let mut consumed = 0;
-        for chunk in &self.chunks {
+        for chunk in self.chunks.iter().filter(|c| c.enqueued) {
             if range.as_ref() != Some(&chunk.text_range) {
                 range = Some(chunk.text_range.clone());
                 consumed = 0;
@@ -178,6 +197,23 @@ pub struct Playback {
 }
 
 impl Playback {
+    /// Preserve synthesis facts even when generation fencing rejects admission.
+    pub fn record_rejected(
+        &mut self,
+        id: Identity,
+        record: ChunkRecord,
+    ) -> Result<(), PlaybackError> {
+        let reply = self
+            .replies
+            .iter_mut()
+            .find(|r| r.identity == id)
+            .ok_or(PlaybackError::InvalidPacket)?;
+        if reply.chunks.len() >= self.max_chunks {
+            return Err(PlaybackError::Capacity);
+        }
+        reply.chunks.push(record);
+        Ok(())
+    }
     pub fn new(
         sink: Box<dyn PlaybackSink>,
         capacity_samples: usize,
@@ -296,6 +332,7 @@ impl Playback {
             enqueued: true,
             played_samples: 0,
             truncated: false,
+            rejection_reason: None,
         });
         self.expected_sample += c.samples.len() as u64;
         self.queue.push_back(packet);

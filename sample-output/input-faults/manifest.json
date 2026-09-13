@@ -27,10 +27,10 @@
     "event_capacity": 32,
     "input_capacity": 50,
     "input_faults": {
-      "drop_every": null,
-      "jitter_ms": 0,
-      "reorder_every": null,
-      "seed": 0
+      "drop_every": 23,
+      "jitter_ms": 9,
+      "reorder_every": 31,
+      "seed": 71
     },
     "journal_fail_after": null,
     "llm": {

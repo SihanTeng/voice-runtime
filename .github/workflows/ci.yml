@@ -26,6 +26,10 @@ jobs:
           target/release/voice-runtime run --scenario all --output output
           target/release/voice-runtime replay output/C/trace.jsonl --output output/replay
           target/release/voice-runtime wav tests/fixtures/speech16.wav --script tests/fixtures/wav-script.json --output output/wav
+          target/release/voice-runtime run --scenario B --config examples/slow-vad.json --output output/slow-vad
+          target/release/voice-runtime run --scenario C --config examples/input-faults.json --output output/input-faults
+          target/release/voice-runtime g711-encode tests/fixtures/speech16.wav --law mulaw --output output/input.mulaw
+          target/release/voice-runtime g711 output/input.mulaw --law mulaw --real-vad --script tests/fixtures/wav-script.json --output output/phone
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: voice-runtime-${{ matrix.os }}
