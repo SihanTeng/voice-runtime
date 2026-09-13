@@ -1,0 +1,4 @@
+{
+  "llm": {"first_ms":80,"interval_ms":20,"jitter_ms":12,"burst":{"every":16,"length":2,"delay_ms":100}},
+  "tts": {"first_ms":60,"interval_ms":5,"jitter_ms":9,"late_chunks":2,"burst":{"every":31,"length":3,"delay_ms":80}}
+}

@@ -9,7 +9,7 @@ use crate::{
     queue::{QueueMeter, Sender},
 };
 use std::{rc::Rc, sync::Arc};
-use tokio::sync::{Semaphore, mpsc};
+use tokio::sync::Semaphore;
 use tokio_util::sync::CancellationToken;
 
 pub struct CapturedFrame {
@@ -25,13 +25,13 @@ pub enum Output {
     Vad(CapturedFrame, bool),
     Partial {
         turn: u64,
-        text: String,
-        through: u64,
+        update: crate::transcript::AsrUpdate,
     },
     Final {
         turn: u64,
-        text: String,
+        update: crate::transcript::AsrUpdate,
     },
+    TtsRequested(Identity, u64),
     Text(Identity, String),
     Audio(Packet),
     TtsDone(Identity),
@@ -62,7 +62,7 @@ impl WorkerContext {
 
 pub async fn vad_worker(
     mut provider: Box<dyn VadProvider>,
-    mut input: mpsc::Receiver<CapturedFrame>,
+    mut input: crate::queue::Receiver<CapturedFrame>,
     timing: Timing,
     ctx: WorkerContext,
 ) -> Result<(), ProviderError> {
@@ -81,7 +81,7 @@ pub async fn vad_worker(
 pub async fn asr_worker(
     mut provider: Box<dyn AsrProvider>,
     turn: u64,
-    mut input: mpsc::Receiver<AsrInput>,
+    mut input: crate::queue::Receiver<AsrInput>,
     timing: Timing,
     ctx: WorkerContext,
 ) -> Result<(), ProviderError> {
@@ -102,22 +102,18 @@ pub async fn asr_worker(
         pacer.next(&ctx.soft, &ctx.hard).await?;
         let output = match message {
             AsrInput::Frame(frame, voiced) => {
-                let text = provider.accept(&frame, voiced)?;
-                if text.len() > ctx.max_text_bytes {
+                let update = provider.accept(&frame, voiced)?;
+                if update.text.len() > ctx.max_text_bytes {
                     return Err(ProviderError::Protocol("ASR text limit".into()));
                 }
-                Output::Partial {
-                    turn,
-                    text,
-                    through: frame.sequence,
-                }
+                Output::Partial { turn, update }
             }
             AsrInput::Finish => {
-                let text = provider.finish()?;
-                if text.len() > ctx.max_text_bytes {
+                let update = provider.finish()?;
+                if update.text.len() > ctx.max_text_bytes {
                     return Err(ProviderError::Protocol("ASR final text limit".into()));
                 }
-                ctx.emit(Output::Final { turn, text }).await?;
+                ctx.emit(Output::Final { turn, update }).await?;
                 return Ok(());
             }
         };
@@ -152,7 +148,7 @@ pub async fn llm_worker(
 pub async fn tts_worker(
     mut provider: Box<dyn TtsProvider>,
     id: Identity,
-    mut text: mpsc::Receiver<String>,
+    mut text: crate::queue::Receiver<String>,
     budget: Arc<Semaphore>,
     timing: Timing,
     ctx: WorkerContext,
@@ -176,6 +172,10 @@ pub async fn tts_worker(
                 None => { ctx.emit(Output::TtsDone(id)).await?; return Ok(()); }
             }
         };
+        if sequence == 0 {
+            ctx.emit(Output::TtsRequested(id, ctx.clock.now_ms()))
+                .await?;
+        }
         last_word.clone_from(&word);
         for offset in (0..word_samples).step_by(FRAME_SAMPLES) {
             let samples = FRAME_SAMPLES.min(word_samples - offset);

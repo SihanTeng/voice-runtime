@@ -34,6 +34,21 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Seeded latency/failure evaluation; retains per-trial JSONL and separates recovery.
+    Evaluate {
+        #[arg(long,default_value="A",value_parser=["A","B","C","D","E"])]
+        scenario: String,
+        #[arg(long,default_value_t=100,value_parser=clap::value_parser!(u32).range(1..=1000))]
+        runs: u32,
+        #[arg(long, default_value_t = 7)]
+        seed: u64,
+        #[arg(long)]
+        config: Option<PathBuf>,
+        #[arg(long, default_value = "output/evaluation")]
+        output: PathBuf,
+        #[arg(long)]
+        real_time: bool,
+    },
     /// Run deterministic A–E fixtures (virtual time by default).
     Run {
         #[arg(long, default_value = "all", value_parser = ["A", "B", "C", "D", "E", "all"])]
@@ -195,10 +210,7 @@ async fn run_source<E: std::error::Error + 'static>(
     outcome?;
     if (report.close_reason != "active_close"
         && Some(report.close_reason.as_str()) != shutdown.reason())
-        || report.events.iter().any(|e| {
-            e.event_type == "provider_failed"
-                || (e.event_type == "turn_failed" && e.payload["reason"] != "session_closing")
-        })
+        || report.has_unrecovered_failure()
     {
         return Err("audio session failed; inspect trace.jsonl".into());
     }
@@ -208,6 +220,66 @@ async fn run_source<E: std::error::Error + 'static>(
 
 async fn execute(command: Command, shutdown: Shutdown) -> Result<()> {
     match command {
+        Command::Evaluate {
+            scenario: selected,
+            runs,
+            seed,
+            config,
+            output,
+            real_time,
+        } => {
+            let config: SessionConfig = match config {
+                Some(p) => read_config(&p)?,
+                None => Default::default(),
+            };
+            config.validate()?;
+            fs::create_dir_all(&output)?;
+            let mut evaluation = voice_runtime::evaluation::Evaluation::new(
+                selected.clone(),
+                !real_time,
+                config.clone(),
+            );
+            for index in 0..runs {
+                if shutdown.reason().is_some() {
+                    break;
+                }
+                let trial_seed = seed.wrapping_add(index as u64);
+                let mut trial_config = config.clone();
+                for t in [
+                    &mut trial_config.vad,
+                    &mut trial_config.asr,
+                    &mut trial_config.llm,
+                    &mut trial_config.tts,
+                ] {
+                    t.seed = trial_seed;
+                }
+                trial_config.input_faults.seed = trial_seed;
+                let report = scenario::run_until_shutdown(
+                    &selected,
+                    trial_config,
+                    Rc::new(TokioClock::default()),
+                    shutdown.clone(),
+                )
+                .await;
+                event::write_jsonl(
+                    &report.events,
+                    File::create(output.join(format!("trial-{index:04}.jsonl")))?,
+                )?;
+                evaluation.record(trial_seed, &report)?;
+            }
+            evaluation.summarize();
+            write_json(output.join("summary.json"), &evaluation)?;
+            println!(
+                "Evaluated {} trials; failures={}, recovered={}; summary: {}",
+                evaluation.trials.len(),
+                evaluation.failures,
+                evaluation.recovered_sessions,
+                output.join("summary.json").display()
+            );
+            if shutdown.reason().is_none() && evaluation.failures > 0 {
+                return Err("evaluation contains failed trials; inspect summary and traces".into());
+            }
+        }
         Command::Run {
             scenario: selected,
             output,
@@ -257,11 +329,7 @@ async fn execute(command: Command, shutdown: Shutdown) -> Result<()> {
                 .await;
                 failed |= (report.close_reason != "active_close"
                     && Some(report.close_reason.as_str()) != shutdown.reason())
-                    || report.events.iter().any(|e| {
-                        e.event_type == "provider_failed"
-                            || (e.event_type == "turn_failed"
-                                && e.payload["reason"] != "session_closing")
-                    });
+                    || report.has_unrecovered_failure();
                 metrics.insert(name, write_report(&output.join(name), &report)?);
                 if shutdown.reason().is_some() {
                     break;
@@ -338,7 +406,8 @@ async fn execute(command: Command, shutdown: Shutdown) -> Result<()> {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     let virtual_time = match &cli.command {
-        Command::Run { real_time, .. }
+        Command::Evaluate { real_time, .. }
+        | Command::Run { real_time, .. }
         | Command::Wav { real_time, .. }
         | Command::G711 { real_time, .. } => !real_time,
         Command::Replay { .. } | Command::G711Encode { .. } => true,

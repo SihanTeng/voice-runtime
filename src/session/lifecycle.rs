@@ -1,5 +1,6 @@
 //! Task supervision, priority event loop, and joined shutdown.
 use super::{Session, SessionReport};
+use crate::event::EventData;
 use crate::{
     audio::FRAME_MS,
     event::Identity,
@@ -7,13 +8,13 @@ use crate::{
     queue::{self, QueueMeter, QueueSnapshot},
     transport::{self, Output},
 };
-use serde_json::json;
 use std::{cell::Cell, rc::Rc};
 use tokio_util::sync::CancellationToken;
 
 pub(super) struct TaskResult {
     stage: &'static str,
     turn: Option<u64>,
+    generation: Option<Identity>,
     result: Result<(), ProviderError>,
 }
 
@@ -22,6 +23,7 @@ impl Session {
         &mut self,
         stage: &'static str,
         turn: Option<u64>,
+        generation: Option<Identity>,
         future: impl Future<Output = Result<(), ProviderError>> + 'static,
     ) {
         if self.tasks.len() >= self.config.max_tasks {
@@ -32,6 +34,7 @@ impl Session {
             TaskResult {
                 stage,
                 turn,
+                generation,
                 result: future.await,
             }
         });
@@ -39,17 +42,32 @@ impl Session {
     fn task_result(&mut self, result: Result<TaskResult, tokio::task::JoinError>) {
         match result {
             Ok(task) => {
-                self.emit("task_exited", task.turn.map(|turn_id| Identity { turn_id, generation_id: 0 }), json!({"stage": task.stage, "error": task.result.as_ref().err().map(ToString::to_string)}));
+                self.emit(
+                    task.generation.or_else(|| {
+                        task.turn.map(|turn_id| Identity {
+                            turn_id,
+                            generation_id: 0,
+                        })
+                    }),
+                    EventData::TaskExited {
+                        stage: task.stage.to_string(),
+                        error: task.result.as_ref().err().map(ToString::to_string),
+                    },
+                );
                 if let Err(error) = task.result
                     && error != ProviderError::Cancelled
                 {
                     self.emit(
-                        "provider_failed",
-                        task.turn.map(|turn_id| Identity {
-                            turn_id,
-                            generation_id: 0,
+                        task.generation.or_else(|| {
+                            task.turn.map(|turn_id| Identity {
+                                turn_id,
+                                generation_id: 0,
+                            })
                         }),
-                        json!({"stage": task.stage, "reason": error.to_string()}),
+                        EventData::ProviderFailed {
+                            stage: task.stage.to_string(),
+                            reason: error.to_string(),
+                        },
                     );
                     if task.stage == "vad" {
                         self.failed = Some(error.to_string());
@@ -57,10 +75,12 @@ impl Session {
                     if self.turn.as_ref().is_some_and(|t| Some(t.id) == task.turn) {
                         self.reject_turn(&error.to_string());
                     }
-                    if self
-                        .generation
-                        .as_ref()
-                        .is_some_and(|g| Some(g.id.turn_id) == task.turn)
+                    if self.generation.as_ref().is_some_and(|g| {
+                        task.generation
+                            .map_or(!g.recovery && Some(g.id.turn_id) == task.turn, |id| {
+                                g.id == id
+                            })
+                    }) && (error != ProviderError::Timeout || !self.recover_current(task.stage))
                     {
                         self.cancel_current(&error.to_string());
                     }
@@ -68,13 +88,19 @@ impl Session {
             }
             Err(error) if error.is_panic() => {
                 self.failed = Some("background_task_panicked".into());
-                self.emit("task_panicked", None, json!({"error": error.to_string()}));
+                self.emit(
+                    None,
+                    EventData::TaskPanicked {
+                        error: error.to_string(),
+                    },
+                );
             }
-            Err(_) => self.emit("task_aborted", None, json!({})),
+            Err(_) => self.emit(None, EventData::TaskAborted {}),
         }
     }
     pub async fn run(mut self) -> SessionReport {
-        let (log_tx, mut log_rx, lm) = queue::channel("journal", self.config.log_capacity);
+        let (log_tx, mut log_rx, lm) =
+            queue::channel_with_clock("journal", self.config.log_capacity, self.clock.clone());
         self.meters.push(lm);
         self.log_tx = Some(log_tx);
         let limit = self.config.max_events;
@@ -93,10 +119,18 @@ impl Session {
                 }
                 events
             }));
-        self.emit("session_started", None, json!({"config": self.config, "clock": "monotonic_ms", "playback": "simulated_consumption"}));
+        self.emit(
+            None,
+            EventData::SessionStarted {
+                config: Box::new(self.config.clone()),
+                clock: "monotonic_ms".to_string(),
+                playback: "simulated_consumption".to_string(),
+            },
+        );
         let raw = self.raw.take().expect("raw receiver owned once");
         self.spawn(
             "vad",
+            None,
             None,
             transport::vad_worker(
                 self.factory.vad(),
@@ -142,11 +176,15 @@ impl Session {
             name: "playback_audio_samples".into(),
             capacity: self.config.playback_samples,
             peak: self.playback.peak_samples,
+            max_wait_ms: None,
         });
         self.emit(
-            "session_closed",
             None,
-            json!({"reason": reason, "active_tasks": 0, "queues": queues}),
+            EventData::SessionClosed {
+                reason: reason.to_string(),
+                active_tasks: 0,
+                queues: queues.clone(),
+            },
         );
         drop(self.log_tx.take());
         let events = match journal.await {
@@ -178,7 +216,12 @@ impl Session {
             Err(e) => {
                 reason = e.to_string();
                 self.failed = Some(reason.clone());
-                self.emit("sink_failed", None, json!({"reason": reason}));
+                self.emit(
+                    None,
+                    EventData::SinkFailed {
+                        reason: reason.to_string(),
+                    },
+                );
             }
         }
         self.hard.cancel();
@@ -189,7 +232,7 @@ impl Session {
             tokio::select! { biased;
                 Some(output) = self.output.recv() => {
                     match output {
-                        Output::Audio(packet) => { self.emit("tts_chunk", Some(packet.chunk.identity), json!(packet.chunk)); self.record_rejected_audio(&packet, "stale_generation"); self.stale(packet.chunk.identity, "tts_chunk"); }
+                        Output::Audio(packet) => { self.emit(Some(packet.chunk.identity), EventData::TtsChunk(packet.chunk.clone())); self.record_rejected_audio(&packet, "stale_generation"); self.stale(packet.chunk.identity, "tts_chunk"); }
                         Output::Text(id, _) | Output::TtsDone(id) => self.stale(id, "provider_output"),
                         _ => {}
                     }
@@ -205,9 +248,8 @@ impl Session {
         while let Ok(output) = self.output.try_recv() {
             if let Output::Audio(packet) = output {
                 self.emit(
-                    "tts_chunk",
                     Some(packet.chunk.identity),
-                    json!(packet.chunk),
+                    EventData::TtsChunk(packet.chunk.clone()),
                 );
                 self.stale(packet.chunk.identity, "tts_chunk");
                 self.record_rejected_audio(&packet, "stale_generation");

@@ -1,12 +1,12 @@
 //! Generation fencing, heard-only context, and playback transitions.
 use super::{Session, input::InputTurn};
+use crate::event::EventData;
 use crate::{
     event::Identity,
     playback::{ChunkRecord, Consumption, Packet},
     queue::{self, QueueMeter},
     transport::{self, AsrInput},
 };
-use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 use tokio_util::sync::CancellationToken;
@@ -14,9 +14,13 @@ use tokio_util::sync::CancellationToken;
 pub(super) struct Generation {
     pub(super) id: Identity,
     pub(super) soft: CancellationToken,
-    ordinal: usize,
-    tts_done: bool,
-    started: bool,
+    pub(super) ordinal: usize,
+    pub(super) tts_done: bool,
+    pub(super) started: bool,
+    pub(super) asr_transcript: crate::transcript::Transcript,
+    pub(super) asr_final_received: bool,
+    pub(super) recovery: bool,
+    pub(super) speech_end_ms: u64,
 }
 
 impl Session {
@@ -32,12 +36,15 @@ impl Session {
             return;
         }
         self.emit(
-            "endpoint_committed",
             Some(id),
-            json!({"speech_end_ms": turn.last_end, "partial": turn.partial,
-            "observed_silence_ms": turn.silence_samples / 16,
-            "vad_processed_frames": self.processed_frames, "input_admitted_frames": self.admitted_frames.get(),
-            "threshold_ms": self.config.endpoint.silence_threshold(&turn.partial)}),
+            EventData::EndpointCommitted {
+                speech_end_ms: turn.last_end,
+                partial: turn.partial.to_string(),
+                observed_silence_ms: turn.silence_samples / 16,
+                vad_processed_frames: self.processed_frames,
+                input_admitted_frames: self.admitted_frames.get(),
+                threshold_ms: self.config.endpoint.silence_threshold(&turn.partial),
+            },
         );
         self.generation = Some(Generation {
             id,
@@ -45,6 +52,10 @@ impl Session {
             ordinal: turn.ordinal,
             tts_done: false,
             started: false,
+            asr_transcript: turn.transcript,
+            asr_final_received: false,
+            recovery: false,
+            speech_end_ms: turn.last_end,
         });
         if turn
             .tx
@@ -57,9 +68,8 @@ impl Session {
     pub(super) fn progress(&mut self, progress: Option<Consumption>) {
         if let Some(progress) = progress {
             self.emit(
-                "playback_progress",
                 Some(progress.identity),
-                json!(progress),
+                EventData::PlaybackProgress(progress),
             );
         }
     }
@@ -73,20 +83,22 @@ impl Session {
             Err(error) => self.failed = Some(error.to_string()),
         }
         self.emit(
-            "playback_stopped",
             Some(generation.id),
-            json!({"reason": reason}),
+            EventData::PlaybackStopped {
+                reason: reason.to_string(),
+            },
         );
         self.emit(
-            "generation_cancelled",
             Some(generation.id),
-            json!({"reason": reason}),
+            EventData::GenerationCancelled {
+                reason: reason.to_string(),
+            },
         );
         generation.soft.cancel();
         self.status.cancelled_generations += 1;
     }
-    pub(super) fn on_final(&mut self, turn: u64, text: String) {
-        let Some(generation) = &self.generation else {
+    pub(super) fn on_final(&mut self, turn: u64, update: crate::transcript::AsrUpdate) {
+        let Some(generation) = &mut self.generation else {
             self.stale(
                 Identity {
                     turn_id: turn,
@@ -106,9 +118,27 @@ impl Session {
             );
             return;
         }
+        if generation.asr_final_received {
+            let id = generation.id;
+            self.stale(id, "asr_final");
+            return;
+        }
+        match generation
+            .asr_transcript
+            .apply(&update, self.config.max_text_bytes)
+        {
+            Ok(true) if update.is_final => {}
+            _ => {
+                self.cancel_current("invalid_asr_final");
+                return;
+            }
+        }
+        generation.asr_final_received = true;
+        let text = generation.asr_transcript.text().to_owned();
         let id = generation.id;
         let ordinal = generation.ordinal;
-        let ctx = self.ctx(generation.soft.clone());
+        let soft = generation.soft.clone();
+        let ctx = self.ctx(soft);
         let history: Vec<String> = self
             .playback
             .replies
@@ -127,15 +157,42 @@ impl Session {
                 )
             })
             .collect();
-        self.emit("asr_final", Some(id), json!({"text": text}));
         self.emit(
-            "llm_requested",
             Some(id),
-            json!({"transcript": text, "heard_history": history}),
+            EventData::AsrFinal {
+                text: text.to_string(),
+                update: Some(update),
+            },
         );
-        let (tx, rx, meter) = queue::channel(
+        self.emit(
+            Some(id),
+            EventData::LlmRequested {
+                transcript: text.to_string(),
+                heard_history: history.clone(),
+            },
+        );
+        let models = crate::fake::ResponseProviders {
+            llm: self.factory.llm(ordinal, &text, &history),
+            tts: self.factory.tts(),
+        };
+        self.launch_response(
+            id,
+            models,
+            (self.config.llm.clone(), self.config.tts.clone()),
+            ctx,
+        );
+    }
+    pub(super) fn launch_response(
+        &mut self,
+        id: Identity,
+        models: crate::fake::ResponseProviders,
+        timing: (crate::provider::Timing, crate::provider::Timing),
+        ctx: crate::transport::WorkerContext,
+    ) {
+        let (tx, rx, meter) = queue::channel_with_clock(
             format!("llm_tts_{}", id.generation_id),
             self.config.text_capacity,
+            self.clock.clone(),
         );
         self.meters.push(meter);
         let budget_meter = QueueMeter::new(
@@ -145,24 +202,20 @@ impl Session {
         self.meters.push(budget_meter.clone());
         self.spawn(
             "llm",
-            Some(turn),
-            transport::llm_worker(
-                self.factory.llm(ordinal, &text, &history),
-                id,
-                tx,
-                self.config.llm.clone(),
-                ctx.clone(),
-            ),
+            Some(id.turn_id),
+            Some(id),
+            transport::llm_worker(models.llm, id, tx, timing.0, ctx.clone()),
         );
         self.spawn(
             "tts",
-            Some(turn),
+            Some(id.turn_id),
+            Some(id),
             transport::tts_worker(
-                self.factory.tts(),
+                models.tts,
                 id,
                 rx,
                 Arc::new(Semaphore::new(self.config.playback_samples)),
-                self.config.tts.clone(),
+                timing.1,
                 ctx,
                 budget_meter,
             ),
@@ -180,11 +233,16 @@ impl Session {
             self.failed = Some(error.to_string());
             return;
         }
-        self.emit("llm_chunk", Some(id), json!({"text": text}));
+        self.emit(
+            Some(id),
+            EventData::LlmChunk {
+                text: text.to_string(),
+            },
+        );
     }
     pub(super) fn on_audio(&mut self, packet: Packet) {
         let id = packet.chunk.identity;
-        self.emit("tts_chunk", Some(id), json!(packet.chunk));
+        self.emit(Some(id), EventData::TtsChunk(packet.chunk.clone()));
         if self.generation.as_ref().is_none_or(|g| g.id != id) {
             self.record_rejected_audio(&packet, "stale_generation");
             self.stale(id, "tts_chunk");
@@ -194,15 +252,17 @@ impl Session {
         let mut rejected = ChunkRecord::rejected(&packet.chunk, "");
         if let Err(error) = self.playback.enqueue(packet) {
             rejected.rejection_reason = Some(error.to_string());
-            self.emit("audio_rejected", Some(id), json!(rejected));
+            self.emit(Some(id), EventData::AudioRejected(rejected.clone()));
             let _ = self.playback.record_rejected(id, rejected);
             self.failed = Some(error.to_string());
             return;
         }
         self.emit(
-            "audio_enqueued",
             Some(id),
-            json!({"chunk_sequence": sequence, "queue_samples": self.playback.depth_samples()}),
+            EventData::AudioEnqueued {
+                chunk_sequence: sequence,
+                queue_samples: self.playback.depth_samples(),
+            },
         );
         self.start_playback();
     }
@@ -235,9 +295,10 @@ impl Session {
                 .first_audio_ms
                 .get_or_insert(self.clock.now_ms());
             self.emit(
-                "playback_started",
                 Some(id),
-                json!({"chunk_sequence": sequence}),
+                EventData::PlaybackStarted {
+                    chunk_sequence: sequence,
+                },
             );
         }
     }
@@ -253,9 +314,10 @@ impl Session {
                 self.failed = Some(error.to_string());
             }
             self.emit(
-                "playback_stopped",
                 Some(generation.id),
-                json!({"reason": "completed"}),
+                EventData::PlaybackStopped {
+                    reason: "completed".to_string(),
+                },
             );
             self.status.completed_replies += 1;
         }

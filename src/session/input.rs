@@ -1,11 +1,11 @@
 //! Input candidates, ASR admission/freshness, and endpoint decisions.
 use super::Session;
+use crate::event::EventData;
 use crate::{
     event::Identity,
     queue,
     transport::{self, AsrInput, CapturedFrame},
 };
-use serde_json::json;
 use tokio_util::sync::CancellationToken;
 
 pub(super) struct InputTurn {
@@ -19,6 +19,7 @@ pub(super) struct InputTurn {
     speaking: bool,
     confirmed: bool,
     pub(super) partial: String,
+    pub(super) transcript: crate::transcript::Transcript,
     partial_changed: u64,
     through: Option<u64>,
     pub(super) tx: Option<queue::Sender<AsrInput>>,
@@ -31,12 +32,13 @@ impl Session {
         if let Some(turn) = self.turn.take() {
             turn.soft.cancel();
             self.emit(
-                "turn_failed",
                 Some(Identity {
                     turn_id: turn.id,
                     generation_id: 0,
                 }),
-                json!({"reason": reason}),
+                EventData::TurnFailed {
+                    reason: reason.to_string(),
+                },
             );
         }
     }
@@ -48,15 +50,26 @@ impl Session {
             Ok(missing) => missing,
             Err(error) => {
                 self.emit(
-                    "audio_frame_rejected",
                     None,
-                    json!({"reason": error.to_string(), "source_sequence": audio.sequence}),
+                    EventData::AudioFrameRejected {
+                        reason: error.to_string(),
+                        source_sequence: audio.sequence,
+                    },
                 );
                 return;
             }
         };
-        self.emit("audio_frame", None, json!({"source_sequence": audio.sequence, "capture_ms": audio.timestamp,
-            "valid_samples": audio.valid_samples, "vad": voiced, "speech_truth": frame.speech_truth, "missing_frames": missing}));
+        self.emit(
+            None,
+            EventData::AudioFrame {
+                source_sequence: audio.sequence,
+                capture_ms: audio.timestamp,
+                valid_samples: audio.valid_samples,
+                vad: voiced,
+                speech_truth: frame.speech_truth,
+                missing_frames: missing,
+            },
+        );
         if missing > 0
             && let Some(turn) = &mut self.turn
         {
@@ -81,6 +94,7 @@ impl Session {
                 speaking: false,
                 confirmed: false,
                 partial: String::new(),
+                transcript: Default::default(),
                 partial_changed: now,
                 through: None,
                 tx: None,
@@ -88,12 +102,14 @@ impl Session {
                 ordinal: self.accepted_turns,
             });
             self.emit(
-                "speech_start",
                 Some(Identity {
                     turn_id: id,
                     generation_id: 0,
                 }),
-                json!({"onset_ms": audio.timestamp, "detected_ms": now}),
+                EventData::SpeechStart {
+                    onset_ms: audio.timestamp,
+                    detected_ms: now,
+                },
             );
         }
         let Some(mut turn) = self.turn.take() else {
@@ -103,12 +119,11 @@ impl Session {
             turn.silence_samples = 0;
             if !turn.speaking && turn.confirmed {
                 self.emit(
-                    "endpoint_candidate_revoked",
                     Some(Identity {
                         turn_id: turn.id,
                         generation_id: 0,
                     }),
-                    json!({}),
+                    EventData::EndpointCandidateRevoked {},
                 );
             }
             turn.continuous_samples += audio.valid_samples;
@@ -119,24 +134,26 @@ impl Session {
             turn.silence_samples += audio.valid_samples as u64;
             if turn.speaking {
                 self.emit(
-                    "speech_end",
                     Some(Identity {
                         turn_id: turn.id,
                         generation_id: 0,
                     }),
-                    json!({"speech_end_ms": turn.last_end}),
+                    EventData::SpeechEnd {
+                        speech_end_ms: turn.last_end,
+                    },
                 );
             }
             turn.speaking = false;
             turn.continuous_samples = 0;
             if !turn.confirmed {
                 self.emit(
-                    "speech_candidate_rejected",
                     Some(Identity {
                         turn_id: turn.id,
                         generation_id: 0,
                     }),
-                    json!({"duration_ms": turn.last_end - turn.onset}),
+                    EventData::SpeechCandidateRejected {
+                        duration_ms: turn.last_end - turn.onset,
+                    },
                 );
                 return;
             }
@@ -150,34 +167,51 @@ impl Session {
             }
             turn.confirmed = true;
             self.accepted_turns += 1;
-            if let Some(generation) = &self.generation {
+            if let Some(generation) = &self.generation
+                && self.config.endpoint.backchannel_max_ms.is_none()
+            {
                 self.emit(
-                    "interruption_decision",
                     Some(generation.id),
-                    json!({"onset_ms": turn.onset,
-                    "detected_ms": turn.detected, "decision_ms": now, "new_turn_id": turn.id}),
+                    EventData::InterruptionDecision {
+                        onset_ms: turn.onset,
+                        detected_ms: turn.detected,
+                        decision_ms: now,
+                        new_turn_id: turn.id,
+                    },
                 );
                 self.cancel_current("barge_in");
             }
-            let (tx, rx, meter) =
-                queue::channel(format!("asr_input_{}", turn.id), self.config.asr_capacity);
+            let (tx, rx, meter) = queue::channel_with_clock(
+                format!("asr_input_{}", turn.id),
+                self.config.asr_capacity,
+                self.clock.clone(),
+            );
             self.meters.push(meter);
             for (frame, voice) in &self.preroll {
                 if tx.try_send(AsrInput::Frame(frame.clone(), *voice)).is_err() {
                     self.emit(
-                        "turn_failed",
                         Some(Identity {
                             turn_id: turn.id,
                             generation_id: 0,
                         }),
-                        json!({"reason": "asr_overload"}),
+                        EventData::TurnFailed {
+                            reason: "asr_overload".to_string(),
+                        },
                     );
                     return;
                 }
             }
+            self.emit(
+                Some(Identity {
+                    turn_id: turn.id,
+                    generation_id: 0,
+                }),
+                EventData::AsrRequested {},
+            );
             self.spawn(
                 "asr",
                 Some(turn.id),
+                None,
                 transport::asr_worker(
                     self.factory.asr(turn.ordinal),
                     turn.id,
@@ -192,16 +226,18 @@ impl Session {
         {
             turn.soft.cancel();
             self.emit(
-                "turn_failed",
                 Some(Identity {
                     turn_id: turn.id,
                     generation_id: 0,
                 }),
-                json!({"reason": "asr_overload"}),
+                EventData::TurnFailed {
+                    reason: "asr_overload".to_string(),
+                },
             );
             return;
         }
         self.turn = Some(turn);
+        self.maybe_interrupt();
         self.maybe_endpoint();
     }
     pub(super) fn maybe_endpoint(&mut self) {
@@ -217,7 +253,19 @@ impl Session {
             self.reject_turn("asr_lag_timeout");
             return;
         }
-        if lag
+        let unstable = self
+            .config
+            .endpoint
+            .min_partial_stability
+            .zip(turn.transcript.stability())
+            .is_some_and(|(minimum, actual)| actual < minimum);
+        if unstable && now.saturating_sub(turn.last_end) >= self.config.endpoint.asr_lag_timeout_ms
+        {
+            self.reject_turn("asr_unstable_timeout");
+            return;
+        }
+        if unstable
+            || lag
             || turn.silence_samples
                 < self
                     .config
@@ -233,24 +281,54 @@ impl Session {
         let turn = self.turn.take().expect("turn checked above");
         self.commit_endpoint(turn);
     }
-    pub(super) fn on_partial(&mut self, turn: u64, text: String, through: u64) {
-        if let Some(input) = &mut self.turn
-            && input.id == turn
-        {
-            if input.partial != text {
-                input.partial_changed = self.clock.now_ms();
-            }
-            input.partial.clone_from(&text);
-            input.through = Some(through);
+    pub(super) fn maybe_interrupt(&mut self) {
+        let Some(limit) = self.config.endpoint.backchannel_max_ms else {
+            return;
+        };
+        let Some(turn) = &self.turn else {
+            return;
+        };
+        let Some(generation) = &self.generation else {
+            return;
+        };
+        if !turn.confirmed {
+            return;
+        }
+        let duration = turn.last_end.saturating_sub(turn.onset);
+        let backchannel = crate::endpoint::is_backchannel(&turn.partial);
+        if !turn.speaking && backchannel && duration < limit {
+            let turn = self.turn.take().expect("checked turn");
+            turn.soft.cancel();
             self.emit(
-                "asr_partial",
                 Some(Identity {
-                    turn_id: turn,
+                    turn_id: turn.id,
                     generation_id: 0,
                 }),
-                json!({"text": text, "through_sequence": through}),
+                EventData::BackchannelRejected {
+                    text: turn.partial,
+                    duration_ms: duration,
+                },
             );
-        } else {
+            return;
+        }
+        // ASR classification may stall even after a short utterance ended. Bound the
+        // decision by capture onset, not voiced duration or another ASR callback.
+        if (!turn.partial.trim().is_empty() && !backchannel)
+            || self.clock.now_ms().saturating_sub(turn.onset) >= limit
+        {
+            let id = generation.id;
+            let data = EventData::InterruptionDecision {
+                onset_ms: turn.onset,
+                detected_ms: turn.detected,
+                decision_ms: self.clock.now_ms(),
+                new_turn_id: turn.id,
+            };
+            self.emit(Some(id), data);
+            self.cancel_current("barge_in");
+        }
+    }
+    pub(super) fn on_partial(&mut self, turn: u64, update: crate::transcript::AsrUpdate) {
+        let Some(input) = &mut self.turn else {
             self.stale(
                 Identity {
                     turn_id: turn,
@@ -258,6 +336,55 @@ impl Session {
                 },
                 "asr_partial",
             );
+            return;
+        };
+        if input.id != turn {
+            self.stale(
+                Identity {
+                    turn_id: turn,
+                    generation_id: 0,
+                },
+                "asr_partial",
+            );
+            return;
         }
+        match input.transcript.apply(&update, self.config.max_text_bytes) {
+            Ok(false) => {
+                self.emit(
+                    Some(Identity {
+                        turn_id: turn,
+                        generation_id: 0,
+                    }),
+                    EventData::AsrResultRejected {
+                        revision: update.revision,
+                        reason: "stale_revision".into(),
+                    },
+                );
+                return;
+            }
+            Err(error) => {
+                self.reject_turn(&error.to_string());
+                return;
+            }
+            Ok(true) => {}
+        }
+        let text = input.transcript.text().to_owned();
+        if input.partial != text {
+            input.partial_changed = self.clock.now_ms();
+        }
+        input.partial.clone_from(&text);
+        input.through = Some(update.through_sequence);
+        self.emit(
+            Some(Identity {
+                turn_id: turn,
+                generation_id: 0,
+            }),
+            EventData::AsrPartial {
+                text,
+                through_sequence: update.through_sequence,
+                update: Some(update),
+            },
+        );
+        self.maybe_interrupt();
     }
 }

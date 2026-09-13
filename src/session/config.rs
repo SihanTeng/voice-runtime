@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SessionConfig {
+    pub recovery: Option<super::RecoveryPolicy>,
     pub input_faults: crate::impairment::InputFaults,
     pub session_id: String,
     pub endpoint: EndpointConfig,
@@ -33,6 +34,7 @@ pub struct SessionConfig {
 impl Default for SessionConfig {
     fn default() -> Self {
         Self {
+            recovery: None,
             input_faults: Default::default(),
             session_id: "session-1".into(),
             endpoint: EndpointConfig::default(),
@@ -77,7 +79,11 @@ impl Default for SessionConfig {
 }
 impl SessionConfig {
     pub fn validate(&self) -> Result<(), SessionError> {
-        if !self.input_faults.validate()
+        if self.recovery.as_ref().is_some_and(|r| {
+            [&r.before_audio, &r.after_audio]
+                .iter()
+                .any(|s| s.trim().is_empty() || s.len() > 4096)
+        }) || !self.input_faults.validate()
             || self.session_id.is_empty()
             || self.session_id.len() > 128
             || [
@@ -114,11 +120,20 @@ impl SessionConfig {
             || self.backpressure_ms == 0
             || self.shutdown_grace_ms == 0
             || self.endpoint.barge_in_ms < 100
+            || self
+                .endpoint
+                .backchannel_max_ms
+                .is_some_and(|ms| ms < self.endpoint.barge_in_ms || ms > 230)
+            || self
+                .endpoint
+                .min_partial_stability
+                .is_some_and(|v| !v.is_finite() || !(0.0..=1.0).contains(&v))
         {
             return Err(SessionError::Configuration);
         }
         for timing in [&self.vad, &self.asr, &self.llm, &self.tts] {
-            if timing.jitter_ms > 60_000
+            if timing.burst.as_ref().is_some_and(|b| !b.valid())
+                || timing.jitter_ms > 60_000
                 || timing.first_ms > 300_000
                 || timing.interval_ms > 300_000
                 || timing.late_chunks > 128

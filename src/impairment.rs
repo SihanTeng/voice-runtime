@@ -13,17 +13,31 @@ pub struct InputFaults {
     pub jitter_ms: u64,
     pub drop_every: Option<u64>,
     pub reorder_every: Option<u64>,
+    pub drop_burst: Option<DropBurst>,
 }
 impl InputFaults {
     pub fn validate(&self) -> bool {
-        self.jitter_ms < 20
+        self.drop_burst
+            .as_ref()
+            .is_none_or(|b| b.every > 0 && b.length > 0 && b.length < b.every)
+            && self.jitter_ms < 20
             && [self.drop_every, self.reorder_every]
                 .iter()
                 .all(|n| n.is_none_or(|n| n >= 2))
     }
     pub fn enabled(&self) -> bool {
-        self.jitter_ms > 0 || self.drop_every.is_some() || self.reorder_every.is_some()
+        self.drop_burst.is_some()
+            || self.jitter_ms > 0
+            || self.drop_every.is_some()
+            || self.reorder_every.is_some()
     }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DropBurst {
+    pub every: u64,
+    pub length: u64,
 }
 
 pub struct InputLink {
@@ -68,8 +82,13 @@ impl InputLink {
             clock.sleep_until(capture + 20 + jitter).await;
             if self
                 .config
-                .drop_every
-                .is_some_and(|n| (seq + 1).is_multiple_of(n))
+                .drop_burst
+                .as_ref()
+                .is_some_and(|b| seq.wrapping_add(self.config.seed % b.every) % b.every < b.length)
+                || self
+                    .config
+                    .drop_every
+                    .is_some_and(|n| (seq + 1).is_multiple_of(n))
             {
                 continue;
             }

@@ -1,0 +1,4 @@
+{
+  "recovery": {},
+  "tts": {"first_ms":60,"interval_ms":5,"stall_at":70,"idle_timeout_ms":80,"late_chunks":2}
+}

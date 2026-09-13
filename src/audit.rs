@@ -11,7 +11,16 @@ use std::{
 };
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
 pub struct TurnMetrics {
+    pub asr_first_partial_ms: Option<u64>,
+    pub asr_final_wait_ms: Option<u64>,
+    pub llm_ttft_ms: Option<u64>,
+    pub tts_first_audio_ms: Option<u64>,
+    pub endpoint_to_first_audio_ms: Option<u64>,
+    pub recovery_start_to_first_audio_ms: Option<u64>,
+    pub playback_underrun_ms: u64,
+    pub is_recovery: bool,
     pub turn_id: u64,
     pub generation_id: u64,
     pub endpoint_latency_ms: Option<u64>,
@@ -28,7 +37,13 @@ pub struct InterruptionMetrics {
     pub interruption_to_playback_stop_ms: Option<u64>,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
 pub struct Metrics {
+    pub maximum_input_age_ms: Option<u64>,
+    pub maximum_cancel_to_task_exit_ms: Option<u64>,
+    pub asr_rejected_update_count: u64,
+    pub backchannel_count: u64,
+    pub recovery_count: u64,
     pub turns: Vec<TurnMetrics>,
     pub interruptions: Vec<InterruptionMetrics>,
     pub overlap_duration_ms: Option<u64>,
@@ -45,7 +60,9 @@ pub struct Audit {
 }
 
 fn number(event: &Event, key: &str) -> u64 {
-    event.payload[key].as_u64().unwrap_or(0)
+    event.payload[key]
+        .as_u64()
+        .expect("schema-validated numeric field")
 }
 
 pub fn analyze(events: &[Event]) -> Audit {
@@ -54,6 +71,18 @@ pub fn analyze(events: &[Event]) -> Audit {
         replies: Vec::new(),
         violations: Vec::new(),
     };
+    // Do not compute plausible metrics from structurally corrupt evidence.
+    for event in events {
+        if let Err(error) = event.decode() {
+            audit.violations.push(format!(
+                "invalid event schema at {}: {error}",
+                event.sequence_number
+            ));
+        }
+    }
+    if !audit.violations.is_empty() {
+        return audit;
+    }
     let mut reply_indices = BTreeMap::new();
     let mut chunks = BTreeMap::<(u64, u64), AudioChunk>::new();
     let mut cancelled = BTreeSet::new();
@@ -63,6 +92,13 @@ pub fn analyze(events: &[Event]) -> Audit {
     let mut progress = Vec::new();
     let mut closed = false;
     let mut previous_time = 0;
+    let mut asr_requested = BTreeMap::new();
+    let mut asr_first = BTreeMap::new();
+    let mut endpoint_at = BTreeMap::new();
+    let mut llm_at = BTreeMap::new();
+    let mut tts_at = BTreeMap::new();
+    let mut last_progress_end = BTreeMap::<u64, u64>::new();
+    let mut cancel_at = BTreeMap::new();
     for (sequence, event) in events.iter().enumerate() {
         if closed
             || event.sequence_number != sequence as u64
@@ -78,7 +114,65 @@ pub fn analyze(events: &[Event]) -> Audit {
         previous_time = event.timestamp;
         let generation = event.generation_id.unwrap_or(0);
         match event.event_type.as_str() {
-            "endpoint_committed" => {
+            "audio_frame" => {
+                let end =
+                    number(event, "capture_ms").saturating_add(number(event, "valid_samples") / 16);
+                audit.metrics.maximum_input_age_ms = Some(
+                    audit
+                        .metrics
+                        .maximum_input_age_ms
+                        .unwrap_or(0)
+                        .max(event.timestamp.saturating_sub(end)),
+                );
+            }
+            "asr_requested" => {
+                asr_requested.insert(event.turn_id.unwrap_or(0), event.timestamp);
+            }
+            "asr_partial" => {
+                let turn = event.turn_id.unwrap_or(0);
+                if let Some(start) = asr_requested.get(&turn) {
+                    asr_first
+                        .entry(turn)
+                        .or_insert(event.timestamp.saturating_sub(*start));
+                }
+            }
+            "asr_result_rejected" => {
+                audit.metrics.asr_rejected_update_count += 1;
+            }
+            "backchannel_rejected" => {
+                audit.metrics.backchannel_count += 1;
+            }
+            "asr_final" => {
+                if let Some(turn) = audit
+                    .metrics
+                    .turns
+                    .iter_mut()
+                    .find(|t| t.generation_id == generation)
+                {
+                    turn.asr_final_wait_ms = endpoint_at
+                        .get(&generation)
+                        .and_then(|at| event.timestamp.checked_sub(*at));
+                }
+            }
+            "llm_requested" => {
+                llm_at.insert(generation, event.timestamp);
+            }
+            "tts_requested" => {
+                tts_at.insert(generation, number(event, "request_ms"));
+            }
+            "task_exited" => {
+                if let Some(at) = cancel_at.get(&generation) {
+                    let elapsed = event.timestamp.saturating_sub(*at);
+                    audit.metrics.maximum_cancel_to_task_exit_ms = Some(
+                        audit
+                            .metrics
+                            .maximum_cancel_to_task_exit_ms
+                            .unwrap_or(0)
+                            .max(elapsed),
+                    );
+                }
+            }
+            "endpoint_committed" | "recovery_started" => {
                 let Some(id) = event.identity() else {
                     audit.violations.push("endpoint missing identity".into());
                     continue;
@@ -93,14 +187,36 @@ pub fn analyze(events: &[Event]) -> Audit {
                 active = Some(generation);
                 let end = number(event, "speech_end_ms");
                 ends.insert(generation, end);
+                endpoint_at.insert(generation, event.timestamp);
+                let is_recovery = event.event_type == "recovery_started";
+                audit.metrics.recovery_count += u64::from(is_recovery);
                 audit.metrics.turns.push(TurnMetrics {
                     turn_id: id.turn_id,
                     generation_id: generation,
-                    endpoint_latency_ms: event.timestamp.checked_sub(end),
+                    is_recovery,
+                    asr_first_partial_ms: if is_recovery {
+                        None
+                    } else {
+                        asr_first.get(&id.turn_id).copied()
+                    },
+                    endpoint_latency_ms: (event.event_type == "endpoint_committed")
+                        .then(|| event.timestamp.checked_sub(end))
+                        .flatten(),
                     ..Default::default()
                 });
             }
             "llm_chunk" => {
+                if let Some(turn) = audit
+                    .metrics
+                    .turns
+                    .iter_mut()
+                    .find(|t| t.generation_id == generation)
+                    && turn.llm_ttft_ms.is_none()
+                {
+                    turn.llm_ttft_ms = llm_at
+                        .get(&generation)
+                        .and_then(|at| event.timestamp.checked_sub(*at));
+                }
                 if active != Some(generation) {
                     audit.violations.push("accepted stale LLM text".into());
                 }
@@ -112,6 +228,18 @@ pub fn analyze(events: &[Event]) -> Audit {
             }
             "tts_chunk" => match serde_json::from_value::<AudioChunk>(event.payload.clone()) {
                 Ok(chunk) => {
+                    if let Some(turn) = audit
+                        .metrics
+                        .turns
+                        .iter_mut()
+                        .find(|t| t.generation_id == generation)
+                        && turn.tts_first_audio_ms.is_none()
+                        && active == Some(generation)
+                    {
+                        turn.tts_first_audio_ms = tts_at
+                            .get(&generation)
+                            .and_then(|at| event.timestamp.checked_sub(*at));
+                    }
                     if active != Some(generation) || cancelled.contains(&generation) {
                         audit.metrics.stale_chunk_received_count += 1;
                         if let Some(index) = reply_indices.get(&generation) {
@@ -186,6 +314,14 @@ pub fn analyze(events: &[Event]) -> Audit {
                     .iter_mut()
                     .find(|t| t.generation_id == generation)
                 {
+                    let latency = endpoint_at
+                        .get(&generation)
+                        .and_then(|at| event.timestamp.checked_sub(*at));
+                    if turn.is_recovery {
+                        turn.recovery_start_to_first_audio_ms = latency;
+                    } else {
+                        turn.endpoint_to_first_audio_ms = latency;
+                    }
                     turn.turn_end_to_first_audio_ms = ends
                         .get(&generation)
                         .and_then(|end| event.timestamp.checked_sub(*end));
@@ -235,6 +371,9 @@ pub fn analyze(events: &[Event]) -> Audit {
                             .find(|t| t.generation_id == generation)
                         {
                             turn.played_samples += p.samples as u64;
+                            if let Some(end) = last_progress_end.insert(generation, p.end_ms) {
+                                turn.playback_underrun_ms += p.start_ms.saturating_sub(end);
+                            }
                         }
                         progress.push(p);
                     }
@@ -255,6 +394,7 @@ pub fn analyze(events: &[Event]) -> Audit {
             }
             "generation_cancelled" => {
                 cancelled.insert(generation);
+                cancel_at.insert(generation, event.timestamp);
                 if let Some(index) = reply_indices.get(&generation) {
                     audit.replies[*index].interrupted = true;
                 }
@@ -316,7 +456,9 @@ pub fn analyze(events: &[Event]) -> Audit {
     // partial oracle as the actual acoustic overlap or false-interruption count.
     let incomplete_truth = events.first().is_some_and(|e| {
         let faults = &e.payload["config"]["input_faults"];
-        faults["drop_every"].is_number() || faults["reorder_every"].is_number()
+        faults["drop_every"].is_number()
+            || faults["reorder_every"].is_number()
+            || faults["drop_burst"].is_object()
     });
     if known_truth && !incomplete_truth {
         let speech: Vec<(u64, u64)> = events
@@ -367,7 +509,14 @@ pub fn read_jsonl(mut reader: impl BufRead) -> std::io::Result<Vec<Event>> {
         if n > 65_536 || events.len() >= 100_000 {
             return Err(std::io::Error::other("trace input limit exceeded"));
         }
-        events.push(serde_json::from_slice(&line)?);
+        let event: Event = serde_json::from_slice(&line)?;
+        event.decode().map_err(|error| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("trace line {}: {error}", events.len() + 1),
+            )
+        })?;
+        events.push(event);
     }
     Ok(events)
 }

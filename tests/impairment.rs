@@ -19,6 +19,7 @@ async fn lost_and_reordered_input_is_reproducible_and_cannot_replay_cancelled_au
             jitter_ms: 9,
             drop_every: Some(23),
             reorder_every: Some(31),
+            ..Default::default()
         },
     ] {
         let config = SessionConfig {

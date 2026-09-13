@@ -12,6 +12,7 @@ pub struct Timing {
     pub first_ms: u64,
     pub interval_ms: u64,
     pub jitter_ms: u64,
+    pub burst: Option<BurstDelay>,
     pub seed: u64,
     pub stall_at: Option<usize>,
     pub panic_at: Option<usize>,
@@ -29,6 +30,7 @@ impl Default for Timing {
             first_ms: 40,
             interval_ms: 20,
             jitter_ms: 0,
+            burst: None,
             seed: 7,
             stall_at: None,
             panic_at: None,
@@ -38,6 +40,20 @@ impl Default for Timing {
             idle_timeout_ms: 500,
             total_timeout_ms: 30_000,
         }
+    }
+}
+
+/// Seed-shifted correlated latency spikes, independent of ordinary per-chunk jitter.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BurstDelay {
+    pub every: u64,
+    pub length: u64,
+    pub delay_ms: u64,
+}
+impl BurstDelay {
+    pub fn valid(&self) -> bool {
+        self.every > 0 && self.length > 0 && self.length <= self.every && self.delay_ms <= 60_000
     }
 }
 
@@ -114,6 +130,17 @@ impl Pacer {
             })
             .saturating_add(jitter)
         };
+        let delay = delay.saturating_add(
+            self.timing
+                .burst
+                .as_ref()
+                .filter(|b| {
+                    b.valid()
+                        && (self.index as u64).wrapping_add(self.timing.seed % b.every) % b.every
+                            < b.length
+                })
+                .map_or(0, |b| b.delay_ms),
+        );
         let timeout = (if first {
             self.timing.first_timeout_ms
         } else {

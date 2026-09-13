@@ -1,0 +1,536 @@
+{
+  "scenario": "A",
+  "clock": "virtual",
+  "seed_start": 7,
+  "seed_end": 106,
+  "runs_per_profile": 100,
+  "interpretation": "Same workload with and without injected burst latency; this measures sensitivity, not an optimization or production SLO. Full per-trial traces are reproducible with the commands in ANALYSIS.md.",
+  "profiles": {
+    "baseline": {
+      "base_config": {
+        "recovery": null,
+        "input_faults": {
+          "seed": 0,
+          "jitter_ms": 0,
+          "drop_every": null,
+          "reorder_every": null,
+          "drop_burst": null
+        },
+        "session_id": "session-1",
+        "endpoint": {
+          "complete_silence_ms": 240,
+          "incomplete_silence_ms": 1000,
+          "unknown_silence_ms": 600,
+          "partial_stability_ms": 100,
+          "barge_in_ms": 120,
+          "asr_lag_timeout_ms": 1500,
+          "backchannel_max_ms": null,
+          "min_partial_stability": null
+        },
+        "vad": {
+          "first_ms": 0,
+          "interval_ms": 0,
+          "jitter_ms": 0,
+          "burst": null,
+          "seed": 7,
+          "stall_at": null,
+          "panic_at": null,
+          "late_chunks": 0,
+          "late_delay_ms": 0,
+          "first_timeout_ms": 1000,
+          "idle_timeout_ms": 500,
+          "total_timeout_ms": 30000
+        },
+        "asr": {
+          "first_ms": 40,
+          "interval_ms": 0,
+          "jitter_ms": 0,
+          "burst": null,
+          "seed": 7,
+          "stall_at": null,
+          "panic_at": null,
+          "late_chunks": 0,
+          "late_delay_ms": 0,
+          "first_timeout_ms": 1000,
+          "idle_timeout_ms": 500,
+          "total_timeout_ms": 30000
+        },
+        "llm": {
+          "first_ms": 80,
+          "interval_ms": 20,
+          "jitter_ms": 0,
+          "burst": null,
+          "seed": 7,
+          "stall_at": null,
+          "panic_at": null,
+          "late_chunks": 0,
+          "late_delay_ms": 0,
+          "first_timeout_ms": 1000,
+          "idle_timeout_ms": 500,
+          "total_timeout_ms": 30000
+        },
+        "tts": {
+          "first_ms": 60,
+          "interval_ms": 5,
+          "jitter_ms": 0,
+          "burst": null,
+          "seed": 7,
+          "stall_at": null,
+          "panic_at": null,
+          "late_chunks": 2,
+          "late_delay_ms": 0,
+          "first_timeout_ms": 1000,
+          "idle_timeout_ms": 500,
+          "total_timeout_ms": 30000
+        },
+        "input_capacity": 50,
+        "asr_capacity": 50,
+        "event_capacity": 32,
+        "text_capacity": 32,
+        "log_capacity": 4096,
+        "playback_samples": 8000,
+        "max_turns": 32,
+        "max_text_bytes": 16384,
+        "max_chunks_per_reply": 3000,
+        "max_events": 100000,
+        "max_tasks": 32,
+        "max_session_ms": 300000,
+        "backpressure_ms": 2000,
+        "shutdown_grace_ms": 500,
+        "journal_fail_after": null
+      },
+      "failures": 0,
+      "recovered_sessions": 0,
+      "distributions": {
+        "cancel_to_task_exit": {
+          "count": 0,
+          "missing": 100,
+          "p50_ms": null,
+          "p95_ms": null,
+          "p99_ms": null,
+          "max_ms": null
+        },
+        "maximum_input_age": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 0,
+          "p95_ms": 0,
+          "p99_ms": 0,
+          "max_ms": 0
+        },
+        "primary.asr_final_wait": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 0,
+          "p95_ms": 0,
+          "p99_ms": 0,
+          "max_ms": 0
+        },
+        "primary.asr_first_partial": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 40,
+          "p95_ms": 40,
+          "p99_ms": 40,
+          "max_ms": 40
+        },
+        "primary.endpoint_latency": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 240,
+          "p95_ms": 240,
+          "p99_ms": 240,
+          "max_ms": 240
+        },
+        "primary.endpoint_to_first_audio": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 140,
+          "p95_ms": 140,
+          "p99_ms": 140,
+          "max_ms": 140
+        },
+        "primary.llm_ttft": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 80,
+          "p95_ms": 80,
+          "p99_ms": 80,
+          "max_ms": 80
+        },
+        "primary.playback_underrun": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 0,
+          "p95_ms": 0,
+          "p99_ms": 0,
+          "max_ms": 0
+        },
+        "primary.tts_first_audio": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 60,
+          "p95_ms": 60,
+          "p99_ms": 60,
+          "max_ms": 60
+        },
+        "primary.turn_end_to_first_audio": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 380,
+          "p95_ms": 380,
+          "p99_ms": 380,
+          "max_ms": 380
+        },
+        "queue.asr_input_1.max_wait": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 40,
+          "p95_ms": 40,
+          "p99_ms": 40,
+          "max_ms": 40
+        },
+        "queue.audio_in_flight_1.max_wait": {
+          "count": 0,
+          "missing": 100,
+          "p50_ms": null,
+          "p95_ms": null,
+          "p99_ms": null,
+          "max_ms": null
+        },
+        "queue.cancel_control.max_wait": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 0,
+          "p95_ms": 0,
+          "p99_ms": 0,
+          "max_ms": 0
+        },
+        "queue.input_audio.max_wait": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 0,
+          "p95_ms": 0,
+          "p99_ms": 0,
+          "max_ms": 0
+        },
+        "queue.journal.max_wait": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 0,
+          "p95_ms": 0,
+          "p99_ms": 0,
+          "max_ms": 0
+        },
+        "queue.llm_tts_1.max_wait": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 2985,
+          "p95_ms": 2985,
+          "p99_ms": 2985,
+          "max_ms": 2985
+        },
+        "queue.playback_audio_samples.max_wait": {
+          "count": 0,
+          "missing": 100,
+          "p50_ms": null,
+          "p95_ms": null,
+          "p99_ms": null,
+          "max_ms": null
+        },
+        "queue.preroll_frames.max_wait": {
+          "count": 0,
+          "missing": 100,
+          "p50_ms": null,
+          "p95_ms": null,
+          "p99_ms": null,
+          "max_ms": null
+        },
+        "queue.provider_events.max_wait": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 0,
+          "p95_ms": 0,
+          "p99_ms": 0,
+          "max_ms": 0
+        },
+        "queue.status_watch.max_wait": {
+          "count": 0,
+          "missing": 100,
+          "p50_ms": null,
+          "p95_ms": null,
+          "p99_ms": null,
+          "max_ms": null
+        }
+      },
+      "stale_chunk_played_count": 0
+    },
+    "tail": {
+      "base_config": {
+        "recovery": null,
+        "input_faults": {
+          "seed": 0,
+          "jitter_ms": 0,
+          "drop_every": null,
+          "reorder_every": null,
+          "drop_burst": null
+        },
+        "session_id": "session-1",
+        "endpoint": {
+          "complete_silence_ms": 240,
+          "incomplete_silence_ms": 1000,
+          "unknown_silence_ms": 600,
+          "partial_stability_ms": 100,
+          "barge_in_ms": 120,
+          "asr_lag_timeout_ms": 1500,
+          "backchannel_max_ms": null,
+          "min_partial_stability": null
+        },
+        "vad": {
+          "first_ms": 0,
+          "interval_ms": 0,
+          "jitter_ms": 0,
+          "burst": null,
+          "seed": 7,
+          "stall_at": null,
+          "panic_at": null,
+          "late_chunks": 0,
+          "late_delay_ms": 0,
+          "first_timeout_ms": 1000,
+          "idle_timeout_ms": 500,
+          "total_timeout_ms": 30000
+        },
+        "asr": {
+          "first_ms": 40,
+          "interval_ms": 0,
+          "jitter_ms": 0,
+          "burst": null,
+          "seed": 7,
+          "stall_at": null,
+          "panic_at": null,
+          "late_chunks": 0,
+          "late_delay_ms": 0,
+          "first_timeout_ms": 1000,
+          "idle_timeout_ms": 500,
+          "total_timeout_ms": 30000
+        },
+        "llm": {
+          "first_ms": 80,
+          "interval_ms": 20,
+          "jitter_ms": 12,
+          "burst": {
+            "every": 16,
+            "length": 2,
+            "delay_ms": 100
+          },
+          "seed": 7,
+          "stall_at": null,
+          "panic_at": null,
+          "late_chunks": 0,
+          "late_delay_ms": 0,
+          "first_timeout_ms": 1000,
+          "idle_timeout_ms": 500,
+          "total_timeout_ms": 30000
+        },
+        "tts": {
+          "first_ms": 60,
+          "interval_ms": 5,
+          "jitter_ms": 9,
+          "burst": {
+            "every": 31,
+            "length": 3,
+            "delay_ms": 80
+          },
+          "seed": 7,
+          "stall_at": null,
+          "panic_at": null,
+          "late_chunks": 2,
+          "late_delay_ms": 0,
+          "first_timeout_ms": 1000,
+          "idle_timeout_ms": 500,
+          "total_timeout_ms": 30000
+        },
+        "input_capacity": 50,
+        "asr_capacity": 50,
+        "event_capacity": 32,
+        "text_capacity": 32,
+        "log_capacity": 4096,
+        "playback_samples": 8000,
+        "max_turns": 32,
+        "max_text_bytes": 16384,
+        "max_chunks_per_reply": 3000,
+        "max_events": 100000,
+        "max_tasks": 32,
+        "max_session_ms": 300000,
+        "backpressure_ms": 2000,
+        "shutdown_grace_ms": 500,
+        "journal_fail_after": null
+      },
+      "failures": 0,
+      "recovered_sessions": 0,
+      "distributions": {
+        "cancel_to_task_exit": {
+          "count": 0,
+          "missing": 100,
+          "p50_ms": null,
+          "p95_ms": null,
+          "p99_ms": null,
+          "max_ms": null
+        },
+        "maximum_input_age": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 0,
+          "p95_ms": 0,
+          "p99_ms": 0,
+          "max_ms": 0
+        },
+        "primary.asr_final_wait": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 0,
+          "p95_ms": 0,
+          "p99_ms": 0,
+          "max_ms": 0
+        },
+        "primary.asr_first_partial": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 40,
+          "p95_ms": 40,
+          "p99_ms": 40,
+          "max_ms": 40
+        },
+        "primary.endpoint_latency": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 240,
+          "p95_ms": 240,
+          "p99_ms": 240,
+          "max_ms": 240
+        },
+        "primary.endpoint_to_first_audio": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 152,
+          "p95_ms": 253,
+          "p99_ms": 337,
+          "max_ms": 339
+        },
+        "primary.llm_ttft": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 86,
+          "p95_ms": 188,
+          "p99_ms": 191,
+          "max_ms": 192
+        },
+        "primary.playback_underrun": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 59,
+          "p95_ms": 192,
+          "p99_ms": 209,
+          "max_ms": 212
+        },
+        "primary.tts_first_audio": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 65,
+          "p95_ms": 144,
+          "p99_ms": 149,
+          "max_ms": 149
+        },
+        "primary.turn_end_to_first_audio": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 392,
+          "p95_ms": 493,
+          "p99_ms": 577,
+          "max_ms": 579
+        },
+        "queue.asr_input_1.max_wait": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 40,
+          "p95_ms": 40,
+          "p99_ms": 40,
+          "max_ms": 40
+        },
+        "queue.audio_in_flight_1.max_wait": {
+          "count": 0,
+          "missing": 100,
+          "p50_ms": null,
+          "p95_ms": null,
+          "p99_ms": null,
+          "max_ms": null
+        },
+        "queue.cancel_control.max_wait": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 0,
+          "p95_ms": 0,
+          "p99_ms": 0,
+          "max_ms": 0
+        },
+        "queue.input_audio.max_wait": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 0,
+          "p95_ms": 0,
+          "p99_ms": 0,
+          "max_ms": 0
+        },
+        "queue.journal.max_wait": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 0,
+          "p95_ms": 0,
+          "p99_ms": 0,
+          "max_ms": 0
+        },
+        "queue.llm_tts_1.max_wait": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 2804,
+          "p95_ms": 2955,
+          "p99_ms": 3035,
+          "max_ms": 3105
+        },
+        "queue.playback_audio_samples.max_wait": {
+          "count": 0,
+          "missing": 100,
+          "p50_ms": null,
+          "p95_ms": null,
+          "p99_ms": null,
+          "max_ms": null
+        },
+        "queue.preroll_frames.max_wait": {
+          "count": 0,
+          "missing": 100,
+          "p50_ms": null,
+          "p95_ms": null,
+          "p99_ms": null,
+          "max_ms": null
+        },
+        "queue.provider_events.max_wait": {
+          "count": 100,
+          "missing": 0,
+          "p50_ms": 0,
+          "p95_ms": 0,
+          "p99_ms": 0,
+          "max_ms": 0
+        },
+        "queue.status_watch.max_wait": {
+          "count": 0,
+          "missing": 100,
+          "p50_ms": null,
+          "p95_ms": null,
+          "p99_ms": null,
+          "max_ms": null
+        }
+      },
+      "stale_chunk_played_count": 0
+    }
+  }
+}

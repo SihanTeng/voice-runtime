@@ -9,6 +9,10 @@ pub struct EndpointConfig {
     pub partial_stability_ms: u64,
     pub barge_in_ms: u64,
     pub asr_lag_timeout_ms: u64,
+    /// Opt-in ASR-assisted short-backchannel guard; acoustic fallback remains bounded.
+    pub backchannel_max_ms: Option<u64>,
+    /// Missing provider stability falls back to temporal stability, never fake confidence.
+    pub min_partial_stability: Option<f32>,
 }
 impl Default for EndpointConfig {
     fn default() -> Self {
@@ -19,6 +23,8 @@ impl Default for EndpointConfig {
             partial_stability_ms: 100,
             barge_in_ms: 120,
             asr_lag_timeout_ms: 1500,
+            backchannel_max_ms: None,
+            min_partial_stability: None,
         }
     }
 }
@@ -46,4 +52,15 @@ impl EndpointConfig {
             self.unknown_silence_ms
         }
     }
+}
+
+/// Deliberately narrow acknowledgements. "yes"/"no" may carry business intent.
+pub fn is_backchannel(text: &str) -> bool {
+    matches!(
+        text.trim()
+            .trim_end_matches(['.', '!', '。', '！'])
+            .to_lowercase()
+            .as_str(),
+        "mm-hmm" | "uh-huh" | "嗯" | "哦"
+    )
 }

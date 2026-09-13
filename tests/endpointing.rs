@@ -87,13 +87,16 @@ async fn hesitation_policy_generalizes_beyond_function_words_and_fixture_timesta
                             TranscriptPoint {
                                 voiced_ms: 0,
                                 text: partial.into(),
+                                ..Default::default()
                             },
                             TranscriptPoint {
                                 voiced_ms: before_ms + after_ms,
                                 text: final_text.into(),
+                                ..Default::default()
                             },
                         ],
                         response: "Confirmed.".into(),
+                        final_text: None,
                     }],
                     ..FakeProviders::default()
                 };

@@ -1,9 +1,12 @@
 //! Single-owner runtime. Private modules group transitions without introducing tasks or locks.
+use crate::event::EventData;
 mod config;
 mod generation;
 mod handle;
 mod input;
 mod lifecycle;
+mod recovery;
+pub use recovery::RecoveryPolicy;
 
 use crate::{
     audio::{AudioFrame, FrameValidator},
@@ -20,12 +23,8 @@ pub use handle::{SessionHandle, Snapshot};
 use input::InputTurn;
 use lifecycle::TaskResult;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::{cell::Cell, collections::VecDeque, rc::Rc};
-use tokio::{
-    sync::{mpsc, watch},
-    task::JoinSet,
-};
+use tokio::{sync::watch, task::JoinSet};
 use tokio_util::sync::CancellationToken;
 
 #[derive(Debug, thiserror::Error)]
@@ -50,6 +49,38 @@ pub struct SessionReport {
     pub trace_complete: bool,
 }
 
+impl SessionReport {
+    /// A failure is handled only when its replacement clarification actually completed.
+    pub fn has_unrecovered_failure(&self) -> bool {
+        let completed: std::collections::BTreeSet<_> = self
+            .events
+            .iter()
+            .filter(|e| e.event_type == "playback_stopped" && e.payload["reason"] == "completed")
+            .filter_map(|e| e.generation_id)
+            .collect();
+        let recovered: std::collections::BTreeSet<_> = self
+            .events
+            .iter()
+            .filter(|e| {
+                e.event_type == "recovery_started"
+                    && e.generation_id.is_some_and(|id| completed.contains(&id))
+            })
+            .filter_map(|e| e.payload["failed_generation_id"].as_u64())
+            .collect();
+        self.events.iter().any(|event| {
+            if event.event_type == "turn_failed" {
+                return event.payload["reason"] != "session_closing";
+            }
+            if event.event_type != "provider_failed" {
+                return false;
+            }
+            event
+                .generation_id
+                .is_none_or(|id| !recovered.contains(&id))
+        })
+    }
+}
+
 pub struct Session {
     config: SessionConfig,
     factory: Rc<dyn ProviderFactory>,
@@ -58,10 +89,10 @@ pub struct Session {
     close: CancellationToken,
     close_reason: Rc<Cell<&'static str>>,
     hard: CancellationToken,
-    raw: Option<mpsc::Receiver<CapturedFrame>>,
-    cancel: mpsc::Receiver<()>,
+    raw: Option<queue::Receiver<CapturedFrame>>,
+    cancel: queue::Receiver<()>,
     out_tx: queue::Sender<Output>,
-    output: mpsc::Receiver<Output>,
+    output: queue::Receiver<Output>,
     status_tx: watch::Sender<Snapshot>,
     status: Snapshot,
     tasks: JoinSet<TaskResult>,
@@ -91,9 +122,11 @@ impl Session {
         sink: Box<dyn PlaybackSink>,
     ) -> Result<(Self, SessionHandle), SessionError> {
         config.validate()?;
-        let (input, raw, im) = queue::channel("input_audio", config.input_capacity);
-        let (out_tx, output, om) = queue::channel("provider_events", config.event_capacity);
-        let (cancel_tx, cancel, cm) = queue::channel("cancel_control", 1);
+        let (input, raw, im) =
+            queue::channel_with_clock("input_audio", config.input_capacity, clock.clone());
+        let (out_tx, output, om) =
+            queue::channel_with_clock("provider_events", config.event_capacity, clock.clone());
+        let (cancel_tx, cancel, cm) = queue::channel_with_clock("cancel_control", 1, clock.clone());
         let (status_tx, snapshot) = watch::channel(Snapshot::default());
         let close = CancellationToken::new();
         let reason = Rc::new(Cell::new("active_close"));
@@ -110,7 +143,7 @@ impl Session {
             sink,
             config.playback_samples,
             config.max_chunks_per_reply,
-            config.max_turns,
+            config.max_turns * if config.recovery.is_some() { 2 } else { 1 },
         );
         let preroll_meter = QueueMeter::new("preroll_frames", 15);
         let status_meter = QueueMeter::new("status_watch", 1);
@@ -150,16 +183,14 @@ impl Session {
             handle,
         ))
     }
-    fn emit(&mut self, kind: &str, id: Option<Identity>, payload: serde_json::Value) {
-        let event = Event {
-            timestamp: self.clock.now_ms(),
-            session_id: self.config.session_id.clone(),
-            turn_id: id.map(|i| i.turn_id),
-            generation_id: id.and_then(|i| (i.generation_id != 0).then_some(i.generation_id)),
-            event_type: kind.into(),
-            sequence_number: self.log_sequence,
-            payload,
-        };
+    fn emit(&mut self, id: Option<Identity>, data: EventData) {
+        let event = Event::new(
+            self.clock.now_ms(),
+            self.config.session_id.clone(),
+            id,
+            self.log_sequence,
+            data,
+        );
         self.log_sequence += 1;
         if self
             .log_tx
@@ -182,20 +213,24 @@ impl Session {
     }
     fn stale(&mut self, id: Identity, kind: &str) {
         self.emit(
-            "stale_event_dropped",
             Some(id),
-            json!({"source_type": kind}),
+            EventData::StaleEventDropped {
+                source_type: kind.to_string(),
+            },
         );
     }
     fn on_output(&mut self, output: Output) {
         match output {
             Output::Vad(frame, voiced) => self.on_vad(frame, voiced),
-            Output::Partial {
-                turn,
-                text,
-                through,
-            } => self.on_partial(turn, text, through),
-            Output::Final { turn, text } => self.on_final(turn, text),
+            Output::Partial { turn, update } => self.on_partial(turn, update),
+            Output::Final { turn, update } => self.on_final(turn, update),
+            Output::TtsRequested(id, request_ms) => {
+                if self.generation.as_ref().is_some_and(|g| g.id == id) {
+                    self.emit(Some(id), EventData::TtsRequested { request_ms });
+                } else {
+                    self.stale(id, "tts_requested");
+                }
+            }
             Output::Text(id, text) => self.on_text(id, text),
             Output::Audio(packet) => self.on_audio(packet),
             Output::TtsDone(id) => self.on_tts_done(id),
@@ -203,6 +238,7 @@ impl Session {
     }
     fn tick(&mut self) {
         self.tick_playback();
+        self.maybe_interrupt();
         self.maybe_endpoint();
     }
 }
