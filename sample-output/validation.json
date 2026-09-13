@@ -1,0 +1,68 @@
+{
+  "source_commit": "1a4c1b3d87e892db5fe90e58633ca68c2e90d086",
+  "development_started_utc": "2026-09-13T06:13:16+00:00",
+  "validation_recorded_utc": "2026-09-13T07:18:14.080610+00:00",
+  "development_elapsed_minutes_at_validation": 64.97,
+  "environment": {
+    "os": "macOS Apple Silicon",
+    "rust": "1.96.1",
+    "python": "3.9.6"
+  },
+  "quality_gate": {
+    "command": "sh scripts/check.sh",
+    "exit_code": 0,
+    "default_tests_passed": 26,
+    "all_feature_tests_passed": 27,
+    "seeded_property_cases_per_suite": 32,
+    "real_clock_concurrent_sessions": 8,
+    "real_clock_barge_in_budget_ms": 250,
+    "rustfmt": "passed",
+    "clippy_warnings_as_errors": "passed",
+    "release_all_features": "passed",
+    "hook_fixtures": [
+      "format failure",
+      "lint failure",
+      "test failure",
+      "spaces in filenames",
+      "partial staging"
+    ],
+    "check_log_elapsed_seconds": 40.342
+  },
+  "workflow_validation": {
+    "tool": "actionlint v1.7.12",
+    "exit_code": 0,
+    "hosted_ci_executed": false,
+    "remote_branch_protection_enabled": false
+  },
+  "artifact_checks": {
+    "all": {
+      "seconds": 1.523,
+      "exit_code": 0
+    },
+    "replay": {
+      "seconds": 0.049,
+      "exit_code": 0
+    },
+    "wav": {
+      "seconds": 0.152,
+      "exit_code": 0
+    },
+    "jitter": {
+      "seconds": 0.22,
+      "exit_code": 0
+    },
+    "late": {
+      "seconds": 0.196,
+      "exit_code": 0
+    },
+    "timeout": {
+      "seconds": 0.03,
+      "exit_code": 1
+    },
+    "repeat": {
+      "seconds": 1.072,
+      "exit_code": 0
+    }
+  },
+  "determinism": "All A-E traces repeated byte-for-byte in a second release-binary run"
+}

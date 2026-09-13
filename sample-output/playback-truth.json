@@ -1,0 +1,2337 @@
+[
+  {
+    "chunks": [
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 0,
+        "samples": 320,
+        "sequence": 0,
+        "text_range": {
+          "end": 10,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 320,
+        "samples": 320,
+        "sequence": 1,
+        "text_range": {
+          "end": 10,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 640,
+        "samples": 320,
+        "sequence": 2,
+        "text_range": {
+          "end": 10,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 960,
+        "samples": 320,
+        "sequence": 3,
+        "text_range": {
+          "end": 10,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 1280,
+        "samples": 320,
+        "sequence": 4,
+        "text_range": {
+          "end": 10,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 1600,
+        "samples": 320,
+        "sequence": 5,
+        "text_range": {
+          "end": 10,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 1920,
+        "samples": 320,
+        "sequence": 6,
+        "text_range": {
+          "end": 10,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 2240,
+        "samples": 320,
+        "sequence": 7,
+        "text_range": {
+          "end": 10,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 2560,
+        "samples": 320,
+        "sequence": 8,
+        "text_range": {
+          "end": 10,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 2880,
+        "samples": 320,
+        "sequence": 9,
+        "text_range": {
+          "end": 10,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 2880,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 3200,
+        "samples": 320,
+        "sequence": 10,
+        "text_range": {
+          "end": 12,
+          "start": 10
+        },
+        "truncated": false,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 3520,
+        "samples": 320,
+        "sequence": 11,
+        "text_range": {
+          "end": 12,
+          "start": 10
+        },
+        "truncated": false,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 3840,
+        "samples": 320,
+        "sequence": 12,
+        "text_range": {
+          "end": 12,
+          "start": 10
+        },
+        "truncated": false,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 4160,
+        "samples": 320,
+        "sequence": 13,
+        "text_range": {
+          "end": 12,
+          "start": 10
+        },
+        "truncated": false,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 4480,
+        "samples": 320,
+        "sequence": 14,
+        "text_range": {
+          "end": 12,
+          "start": 10
+        },
+        "truncated": false,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 4800,
+        "samples": 320,
+        "sequence": 15,
+        "text_range": {
+          "end": 12,
+          "start": 10
+        },
+        "truncated": false,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 5120,
+        "samples": 320,
+        "sequence": 16,
+        "text_range": {
+          "end": 12,
+          "start": 10
+        },
+        "truncated": false,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 5440,
+        "samples": 320,
+        "sequence": 17,
+        "text_range": {
+          "end": 12,
+          "start": 10
+        },
+        "truncated": false,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 5760,
+        "samples": 320,
+        "sequence": 18,
+        "text_range": {
+          "end": 12,
+          "start": 10
+        },
+        "truncated": false,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 6080,
+        "samples": 320,
+        "sequence": 19,
+        "text_range": {
+          "end": 12,
+          "start": 10
+        },
+        "truncated": false,
+        "word_offset": 2880,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 6400,
+        "samples": 320,
+        "sequence": 20,
+        "text_range": {
+          "end": 16,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 6720,
+        "samples": 320,
+        "sequence": 21,
+        "text_range": {
+          "end": 16,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 7040,
+        "samples": 320,
+        "sequence": 22,
+        "text_range": {
+          "end": 16,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 7360,
+        "samples": 320,
+        "sequence": 23,
+        "text_range": {
+          "end": 16,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 7680,
+        "samples": 320,
+        "sequence": 24,
+        "text_range": {
+          "end": 16,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 8000,
+        "samples": 320,
+        "sequence": 25,
+        "text_range": {
+          "end": 16,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 8320,
+        "samples": 320,
+        "sequence": 26,
+        "text_range": {
+          "end": 16,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 8640,
+        "samples": 320,
+        "sequence": 27,
+        "text_range": {
+          "end": 16,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 8960,
+        "samples": 320,
+        "sequence": 28,
+        "text_range": {
+          "end": 16,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 9280,
+        "samples": 320,
+        "sequence": 29,
+        "text_range": {
+          "end": 16,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 2880,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 9600,
+        "samples": 320,
+        "sequence": 30,
+        "text_range": {
+          "end": 24,
+          "start": 16
+        },
+        "truncated": false,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 9920,
+        "samples": 320,
+        "sequence": 31,
+        "text_range": {
+          "end": 24,
+          "start": 16
+        },
+        "truncated": false,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 10240,
+        "samples": 320,
+        "sequence": 32,
+        "text_range": {
+          "end": 24,
+          "start": 16
+        },
+        "truncated": false,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 10560,
+        "samples": 320,
+        "sequence": 33,
+        "text_range": {
+          "end": 24,
+          "start": 16
+        },
+        "truncated": false,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 10880,
+        "samples": 320,
+        "sequence": 34,
+        "text_range": {
+          "end": 24,
+          "start": 16
+        },
+        "truncated": false,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 11200,
+        "samples": 320,
+        "sequence": 35,
+        "text_range": {
+          "end": 24,
+          "start": 16
+        },
+        "truncated": false,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 11520,
+        "samples": 320,
+        "sequence": 36,
+        "text_range": {
+          "end": 24,
+          "start": 16
+        },
+        "truncated": false,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 11840,
+        "samples": 320,
+        "sequence": 37,
+        "text_range": {
+          "end": 24,
+          "start": 16
+        },
+        "truncated": false,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 12160,
+        "samples": 320,
+        "sequence": 38,
+        "text_range": {
+          "end": 24,
+          "start": 16
+        },
+        "truncated": false,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 12480,
+        "samples": 320,
+        "sequence": 39,
+        "text_range": {
+          "end": 24,
+          "start": 16
+        },
+        "truncated": false,
+        "word_offset": 2880,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 12800,
+        "samples": 320,
+        "sequence": 40,
+        "text_range": {
+          "end": 29,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 13120,
+        "samples": 320,
+        "sequence": 41,
+        "text_range": {
+          "end": 29,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 13440,
+        "samples": 320,
+        "sequence": 42,
+        "text_range": {
+          "end": 29,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 13760,
+        "samples": 320,
+        "sequence": 43,
+        "text_range": {
+          "end": 29,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 14080,
+        "samples": 320,
+        "sequence": 44,
+        "text_range": {
+          "end": 29,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 14400,
+        "samples": 320,
+        "sequence": 45,
+        "text_range": {
+          "end": 29,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 14720,
+        "samples": 320,
+        "sequence": 46,
+        "text_range": {
+          "end": 29,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 15040,
+        "samples": 320,
+        "sequence": 47,
+        "text_range": {
+          "end": 29,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 15360,
+        "samples": 320,
+        "sequence": 48,
+        "text_range": {
+          "end": 29,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 15680,
+        "samples": 320,
+        "sequence": 49,
+        "text_range": {
+          "end": 29,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 2880,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 16000,
+        "samples": 320,
+        "sequence": 50,
+        "text_range": {
+          "end": 37,
+          "start": 29
+        },
+        "truncated": false,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 16320,
+        "samples": 320,
+        "sequence": 51,
+        "text_range": {
+          "end": 37,
+          "start": 29
+        },
+        "truncated": false,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 16640,
+        "samples": 320,
+        "sequence": 52,
+        "text_range": {
+          "end": 37,
+          "start": 29
+        },
+        "truncated": false,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 16960,
+        "samples": 320,
+        "sequence": 53,
+        "text_range": {
+          "end": 37,
+          "start": 29
+        },
+        "truncated": false,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 17280,
+        "samples": 320,
+        "sequence": 54,
+        "text_range": {
+          "end": 37,
+          "start": 29
+        },
+        "truncated": false,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 17600,
+        "samples": 320,
+        "sequence": 55,
+        "text_range": {
+          "end": 37,
+          "start": 29
+        },
+        "truncated": false,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 17920,
+        "samples": 320,
+        "sequence": 56,
+        "text_range": {
+          "end": 37,
+          "start": 29
+        },
+        "truncated": false,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 18240,
+        "samples": 320,
+        "sequence": 57,
+        "text_range": {
+          "end": 37,
+          "start": 29
+        },
+        "truncated": false,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 18560,
+        "samples": 320,
+        "sequence": 58,
+        "text_range": {
+          "end": 37,
+          "start": 29
+        },
+        "truncated": false,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 18880,
+        "samples": 320,
+        "sequence": 59,
+        "text_range": {
+          "end": 37,
+          "start": 29
+        },
+        "truncated": false,
+        "word_offset": 2880,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 19200,
+        "samples": 320,
+        "sequence": 60,
+        "text_range": {
+          "end": 41,
+          "start": 37
+        },
+        "truncated": false,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 19520,
+        "samples": 320,
+        "sequence": 61,
+        "text_range": {
+          "end": 41,
+          "start": 37
+        },
+        "truncated": false,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 19840,
+        "samples": 320,
+        "sequence": 62,
+        "text_range": {
+          "end": 41,
+          "start": 37
+        },
+        "truncated": false,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 20160,
+        "samples": 320,
+        "sequence": 63,
+        "text_range": {
+          "end": 41,
+          "start": 37
+        },
+        "truncated": false,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 20480,
+        "samples": 320,
+        "sequence": 64,
+        "text_range": {
+          "end": 41,
+          "start": 37
+        },
+        "truncated": false,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 20800,
+        "samples": 320,
+        "sequence": 65,
+        "text_range": {
+          "end": 41,
+          "start": 37
+        },
+        "truncated": false,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 21120,
+        "samples": 320,
+        "sequence": 66,
+        "text_range": {
+          "end": 41,
+          "start": 37
+        },
+        "truncated": true,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 21440,
+        "samples": 320,
+        "sequence": 67,
+        "text_range": {
+          "end": 41,
+          "start": 37
+        },
+        "truncated": true,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 21760,
+        "samples": 320,
+        "sequence": 68,
+        "text_range": {
+          "end": 41,
+          "start": 37
+        },
+        "truncated": true,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 22080,
+        "samples": 320,
+        "sequence": 69,
+        "text_range": {
+          "end": 41,
+          "start": 37
+        },
+        "truncated": true,
+        "word_offset": 2880,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 22400,
+        "samples": 320,
+        "sequence": 70,
+        "text_range": {
+          "end": 51,
+          "start": 41
+        },
+        "truncated": true,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 22720,
+        "samples": 320,
+        "sequence": 71,
+        "text_range": {
+          "end": 51,
+          "start": 41
+        },
+        "truncated": true,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 23040,
+        "samples": 320,
+        "sequence": 72,
+        "text_range": {
+          "end": 51,
+          "start": 41
+        },
+        "truncated": true,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 23360,
+        "samples": 320,
+        "sequence": 73,
+        "text_range": {
+          "end": 51,
+          "start": 41
+        },
+        "truncated": true,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 23680,
+        "samples": 320,
+        "sequence": 74,
+        "text_range": {
+          "end": 51,
+          "start": 41
+        },
+        "truncated": true,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 24000,
+        "samples": 320,
+        "sequence": 75,
+        "text_range": {
+          "end": 51,
+          "start": 41
+        },
+        "truncated": true,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 24320,
+        "samples": 320,
+        "sequence": 76,
+        "text_range": {
+          "end": 51,
+          "start": 41
+        },
+        "truncated": true,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 24640,
+        "samples": 320,
+        "sequence": 77,
+        "text_range": {
+          "end": 51,
+          "start": 41
+        },
+        "truncated": true,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 24960,
+        "samples": 320,
+        "sequence": 78,
+        "text_range": {
+          "end": 51,
+          "start": 41
+        },
+        "truncated": true,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 25280,
+        "samples": 320,
+        "sequence": 79,
+        "text_range": {
+          "end": 51,
+          "start": 41
+        },
+        "truncated": true,
+        "word_offset": 2880,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 25600,
+        "samples": 320,
+        "sequence": 80,
+        "text_range": {
+          "end": 61,
+          "start": 51
+        },
+        "truncated": true,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 25920,
+        "samples": 320,
+        "sequence": 81,
+        "text_range": {
+          "end": 61,
+          "start": 51
+        },
+        "truncated": true,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 26240,
+        "samples": 320,
+        "sequence": 82,
+        "text_range": {
+          "end": 61,
+          "start": 51
+        },
+        "truncated": true,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 26560,
+        "samples": 320,
+        "sequence": 83,
+        "text_range": {
+          "end": 61,
+          "start": 51
+        },
+        "truncated": true,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 26880,
+        "samples": 320,
+        "sequence": 84,
+        "text_range": {
+          "end": 61,
+          "start": 51
+        },
+        "truncated": true,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 27200,
+        "samples": 320,
+        "sequence": 85,
+        "text_range": {
+          "end": 61,
+          "start": 51
+        },
+        "truncated": true,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 27520,
+        "samples": 320,
+        "sequence": 86,
+        "text_range": {
+          "end": 61,
+          "start": 51
+        },
+        "truncated": true,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 27840,
+        "samples": 320,
+        "sequence": 87,
+        "text_range": {
+          "end": 61,
+          "start": 51
+        },
+        "truncated": true,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 28160,
+        "samples": 320,
+        "sequence": 88,
+        "text_range": {
+          "end": 61,
+          "start": 51
+        },
+        "truncated": true,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 0,
+        "sample_start": 28480,
+        "samples": 320,
+        "sequence": 89,
+        "text_range": {
+          "end": 61,
+          "start": 51
+        },
+        "truncated": true,
+        "word_offset": 2880,
+        "word_samples": 3200
+      }
+    ],
+    "enqueued_text": "Certainly I can arrange your booking for Wednesday afternoon ",
+    "generated_text": "Certainly I can arrange your booking for Wednesday afternoon and send you all the details once everything has been confirmed.",
+    "heard_ranges": [
+      {
+        "end": 10,
+        "start": 0
+      },
+      {
+        "end": 12,
+        "start": 10
+      },
+      {
+        "end": 16,
+        "start": 12
+      },
+      {
+        "end": 24,
+        "start": 16
+      },
+      {
+        "end": 29,
+        "start": 24
+      },
+      {
+        "end": 37,
+        "start": 29
+      }
+    ],
+    "heard_text": "Certainly I can arrange your booking ",
+    "identity": {
+      "generation_id": 1,
+      "turn_id": 1
+    },
+    "interrupted": true,
+    "partial_words": [
+      [
+        {
+          "end": 41,
+          "start": 37
+        },
+        1920,
+        3200
+      ]
+    ],
+    "played_duration_ms": 1320.0,
+    "played_samples": 21120
+  },
+  {
+    "chunks": [
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 0,
+        "samples": 320,
+        "sequence": 0,
+        "text_range": {
+          "end": 12,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 320,
+        "samples": 320,
+        "sequence": 1,
+        "text_range": {
+          "end": 12,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 640,
+        "samples": 320,
+        "sequence": 2,
+        "text_range": {
+          "end": 12,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 960,
+        "samples": 320,
+        "sequence": 3,
+        "text_range": {
+          "end": 12,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 1280,
+        "samples": 320,
+        "sequence": 4,
+        "text_range": {
+          "end": 12,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 1600,
+        "samples": 320,
+        "sequence": 5,
+        "text_range": {
+          "end": 12,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 1920,
+        "samples": 320,
+        "sequence": 6,
+        "text_range": {
+          "end": 12,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 2240,
+        "samples": 320,
+        "sequence": 7,
+        "text_range": {
+          "end": 12,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 2560,
+        "samples": 320,
+        "sequence": 8,
+        "text_range": {
+          "end": 12,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 2880,
+        "samples": 320,
+        "sequence": 9,
+        "text_range": {
+          "end": 12,
+          "start": 0
+        },
+        "truncated": false,
+        "word_offset": 2880,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 3200,
+        "samples": 320,
+        "sequence": 10,
+        "text_range": {
+          "end": 14,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 3520,
+        "samples": 320,
+        "sequence": 11,
+        "text_range": {
+          "end": 14,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 3840,
+        "samples": 320,
+        "sequence": 12,
+        "text_range": {
+          "end": 14,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 4160,
+        "samples": 320,
+        "sequence": 13,
+        "text_range": {
+          "end": 14,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 4480,
+        "samples": 320,
+        "sequence": 14,
+        "text_range": {
+          "end": 14,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 4800,
+        "samples": 320,
+        "sequence": 15,
+        "text_range": {
+          "end": 14,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 5120,
+        "samples": 320,
+        "sequence": 16,
+        "text_range": {
+          "end": 14,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 5440,
+        "samples": 320,
+        "sequence": 17,
+        "text_range": {
+          "end": 14,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 5760,
+        "samples": 320,
+        "sequence": 18,
+        "text_range": {
+          "end": 14,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 6080,
+        "samples": 320,
+        "sequence": 19,
+        "text_range": {
+          "end": 14,
+          "start": 12
+        },
+        "truncated": false,
+        "word_offset": 2880,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 6400,
+        "samples": 320,
+        "sequence": 20,
+        "text_range": {
+          "end": 19,
+          "start": 14
+        },
+        "truncated": false,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 6720,
+        "samples": 320,
+        "sequence": 21,
+        "text_range": {
+          "end": 19,
+          "start": 14
+        },
+        "truncated": false,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 7040,
+        "samples": 320,
+        "sequence": 22,
+        "text_range": {
+          "end": 19,
+          "start": 14
+        },
+        "truncated": false,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 7360,
+        "samples": 320,
+        "sequence": 23,
+        "text_range": {
+          "end": 19,
+          "start": 14
+        },
+        "truncated": false,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 7680,
+        "samples": 320,
+        "sequence": 24,
+        "text_range": {
+          "end": 19,
+          "start": 14
+        },
+        "truncated": false,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 8000,
+        "samples": 320,
+        "sequence": 25,
+        "text_range": {
+          "end": 19,
+          "start": 14
+        },
+        "truncated": false,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 8320,
+        "samples": 320,
+        "sequence": 26,
+        "text_range": {
+          "end": 19,
+          "start": 14
+        },
+        "truncated": false,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 8640,
+        "samples": 320,
+        "sequence": 27,
+        "text_range": {
+          "end": 19,
+          "start": 14
+        },
+        "truncated": false,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 8960,
+        "samples": 320,
+        "sequence": 28,
+        "text_range": {
+          "end": 19,
+          "start": 14
+        },
+        "truncated": false,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 9280,
+        "samples": 320,
+        "sequence": 29,
+        "text_range": {
+          "end": 19,
+          "start": 14
+        },
+        "truncated": false,
+        "word_offset": 2880,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 9600,
+        "samples": 320,
+        "sequence": 30,
+        "text_range": {
+          "end": 24,
+          "start": 19
+        },
+        "truncated": false,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 9920,
+        "samples": 320,
+        "sequence": 31,
+        "text_range": {
+          "end": 24,
+          "start": 19
+        },
+        "truncated": false,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 10240,
+        "samples": 320,
+        "sequence": 32,
+        "text_range": {
+          "end": 24,
+          "start": 19
+        },
+        "truncated": false,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 10560,
+        "samples": 320,
+        "sequence": 33,
+        "text_range": {
+          "end": 24,
+          "start": 19
+        },
+        "truncated": false,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 10880,
+        "samples": 320,
+        "sequence": 34,
+        "text_range": {
+          "end": 24,
+          "start": 19
+        },
+        "truncated": false,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 11200,
+        "samples": 320,
+        "sequence": 35,
+        "text_range": {
+          "end": 24,
+          "start": 19
+        },
+        "truncated": false,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 11520,
+        "samples": 320,
+        "sequence": 36,
+        "text_range": {
+          "end": 24,
+          "start": 19
+        },
+        "truncated": false,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 11840,
+        "samples": 320,
+        "sequence": 37,
+        "text_range": {
+          "end": 24,
+          "start": 19
+        },
+        "truncated": false,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 12160,
+        "samples": 320,
+        "sequence": 38,
+        "text_range": {
+          "end": 24,
+          "start": 19
+        },
+        "truncated": false,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 12480,
+        "samples": 320,
+        "sequence": 39,
+        "text_range": {
+          "end": 24,
+          "start": 19
+        },
+        "truncated": false,
+        "word_offset": 2880,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 12800,
+        "samples": 320,
+        "sequence": 40,
+        "text_range": {
+          "end": 27,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 13120,
+        "samples": 320,
+        "sequence": 41,
+        "text_range": {
+          "end": 27,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 13440,
+        "samples": 320,
+        "sequence": 42,
+        "text_range": {
+          "end": 27,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 13760,
+        "samples": 320,
+        "sequence": 43,
+        "text_range": {
+          "end": 27,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 14080,
+        "samples": 320,
+        "sequence": 44,
+        "text_range": {
+          "end": 27,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 14400,
+        "samples": 320,
+        "sequence": 45,
+        "text_range": {
+          "end": 27,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 14720,
+        "samples": 320,
+        "sequence": 46,
+        "text_range": {
+          "end": 27,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 15040,
+        "samples": 320,
+        "sequence": 47,
+        "text_range": {
+          "end": 27,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 15360,
+        "samples": 320,
+        "sequence": 48,
+        "text_range": {
+          "end": 27,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 15680,
+        "samples": 320,
+        "sequence": 49,
+        "text_range": {
+          "end": 27,
+          "start": 24
+        },
+        "truncated": false,
+        "word_offset": 2880,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 16000,
+        "samples": 320,
+        "sequence": 50,
+        "text_range": {
+          "end": 34,
+          "start": 27
+        },
+        "truncated": false,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 16320,
+        "samples": 320,
+        "sequence": 51,
+        "text_range": {
+          "end": 34,
+          "start": 27
+        },
+        "truncated": false,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 16640,
+        "samples": 320,
+        "sequence": 52,
+        "text_range": {
+          "end": 34,
+          "start": 27
+        },
+        "truncated": false,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 16960,
+        "samples": 320,
+        "sequence": 53,
+        "text_range": {
+          "end": 34,
+          "start": 27
+        },
+        "truncated": false,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 17280,
+        "samples": 320,
+        "sequence": 54,
+        "text_range": {
+          "end": 34,
+          "start": 27
+        },
+        "truncated": false,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 17600,
+        "samples": 320,
+        "sequence": 55,
+        "text_range": {
+          "end": 34,
+          "start": 27
+        },
+        "truncated": false,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 17920,
+        "samples": 320,
+        "sequence": 56,
+        "text_range": {
+          "end": 34,
+          "start": 27
+        },
+        "truncated": false,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 18240,
+        "samples": 320,
+        "sequence": 57,
+        "text_range": {
+          "end": 34,
+          "start": 27
+        },
+        "truncated": false,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 18560,
+        "samples": 320,
+        "sequence": 58,
+        "text_range": {
+          "end": 34,
+          "start": 27
+        },
+        "truncated": false,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 18880,
+        "samples": 320,
+        "sequence": 59,
+        "text_range": {
+          "end": 34,
+          "start": 27
+        },
+        "truncated": false,
+        "word_offset": 2880,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 19200,
+        "samples": 320,
+        "sequence": 60,
+        "text_range": {
+          "end": 42,
+          "start": 34
+        },
+        "truncated": false,
+        "word_offset": 0,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 19520,
+        "samples": 320,
+        "sequence": 61,
+        "text_range": {
+          "end": 42,
+          "start": 34
+        },
+        "truncated": false,
+        "word_offset": 320,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 19840,
+        "samples": 320,
+        "sequence": 62,
+        "text_range": {
+          "end": 42,
+          "start": 34
+        },
+        "truncated": false,
+        "word_offset": 640,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 20160,
+        "samples": 320,
+        "sequence": 63,
+        "text_range": {
+          "end": 42,
+          "start": 34
+        },
+        "truncated": false,
+        "word_offset": 960,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 20480,
+        "samples": 320,
+        "sequence": 64,
+        "text_range": {
+          "end": 42,
+          "start": 34
+        },
+        "truncated": false,
+        "word_offset": 1280,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 20800,
+        "samples": 320,
+        "sequence": 65,
+        "text_range": {
+          "end": 42,
+          "start": 34
+        },
+        "truncated": false,
+        "word_offset": 1600,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 21120,
+        "samples": 320,
+        "sequence": 66,
+        "text_range": {
+          "end": 42,
+          "start": 34
+        },
+        "truncated": false,
+        "word_offset": 1920,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 21440,
+        "samples": 320,
+        "sequence": 67,
+        "text_range": {
+          "end": 42,
+          "start": 34
+        },
+        "truncated": false,
+        "word_offset": 2240,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 21760,
+        "samples": 320,
+        "sequence": 68,
+        "text_range": {
+          "end": 42,
+          "start": 34
+        },
+        "truncated": false,
+        "word_offset": 2560,
+        "word_samples": 3200
+      },
+      {
+        "enqueued": true,
+        "played_samples": 320,
+        "sample_start": 22080,
+        "samples": 320,
+        "sequence": 69,
+        "text_range": {
+          "end": 42,
+          "start": 34
+        },
+        "truncated": false,
+        "word_offset": 2880,
+        "word_samples": 3200
+      }
+    ],
+    "enqueued_text": "Understood. I will make it Friday instead.",
+    "generated_text": "Understood. I will make it Friday instead.",
+    "heard_ranges": [
+      {
+        "end": 12,
+        "start": 0
+      },
+      {
+        "end": 14,
+        "start": 12
+      },
+      {
+        "end": 19,
+        "start": 14
+      },
+      {
+        "end": 24,
+        "start": 19
+      },
+      {
+        "end": 27,
+        "start": 24
+      },
+      {
+        "end": 34,
+        "start": 27
+      },
+      {
+        "end": 42,
+        "start": 34
+      }
+    ],
+    "heard_text": "Understood. I will make it Friday instead.",
+    "identity": {
+      "generation_id": 2,
+      "turn_id": 2
+    },
+    "interrupted": false,
+    "partial_words": [],
+    "played_duration_ms": 1400.0,
+    "played_samples": 22400
+  }
+]

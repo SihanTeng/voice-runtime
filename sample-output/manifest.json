@@ -1,0 +1,115 @@
+{
+  "audio": "mono PCM16 16000 Hz; 20 ms",
+  "config": {
+    "asr": {
+      "first_ms": 40,
+      "first_timeout_ms": 1000,
+      "idle_timeout_ms": 500,
+      "interval_ms": 0,
+      "jitter_ms": 0,
+      "late_chunks": 0,
+      "late_delay_ms": 0,
+      "panic_at": null,
+      "seed": 7,
+      "stall_at": null,
+      "total_timeout_ms": 30000
+    },
+    "asr_capacity": 50,
+    "backpressure_ms": 2000,
+    "endpoint": {
+      "asr_lag_timeout_ms": 1500,
+      "barge_in_ms": 120,
+      "complete_silence_ms": 240,
+      "incomplete_silence_ms": 1000,
+      "partial_stability_ms": 100,
+      "unknown_silence_ms": 600
+    },
+    "event_capacity": 32,
+    "input_capacity": 50,
+    "journal_fail_after": null,
+    "llm": {
+      "first_ms": 80,
+      "first_timeout_ms": 1000,
+      "idle_timeout_ms": 500,
+      "interval_ms": 20,
+      "jitter_ms": 0,
+      "late_chunks": 0,
+      "late_delay_ms": 0,
+      "panic_at": null,
+      "seed": 7,
+      "stall_at": null,
+      "total_timeout_ms": 30000
+    },
+    "log_capacity": 4096,
+    "max_chunks_per_reply": 3000,
+    "max_events": 100000,
+    "max_session_ms": 300000,
+    "max_tasks": 32,
+    "max_text_bytes": 16384,
+    "max_turns": 32,
+    "playback_samples": 8000,
+    "session_id": "session-1",
+    "shutdown_grace_ms": 500,
+    "text_capacity": 32,
+    "tts": {
+      "first_ms": 60,
+      "first_timeout_ms": 1000,
+      "idle_timeout_ms": 500,
+      "interval_ms": 5,
+      "jitter_ms": 0,
+      "late_chunks": 2,
+      "late_delay_ms": 0,
+      "panic_at": null,
+      "seed": 7,
+      "stall_at": null,
+      "total_timeout_ms": 30000
+    },
+    "vad": {
+      "first_ms": 0,
+      "first_timeout_ms": 1000,
+      "idle_timeout_ms": 500,
+      "interval_ms": 0,
+      "jitter_ms": 0,
+      "late_chunks": 0,
+      "late_delay_ms": 0,
+      "panic_at": null,
+      "seed": 7,
+      "stall_at": null,
+      "total_timeout_ms": 30000
+    }
+  },
+  "fixture_version": 1,
+  "providers": {
+    "real_vad": false,
+    "turns": [
+      {
+        "partials": [
+          {
+            "text": "Please book it for",
+            "voiced_ms": 0
+          },
+          {
+            "text": "Please book it for Wednesday afternoon.",
+            "voiced_ms": 800
+          }
+        ],
+        "response": "Certainly I can arrange your booking for Wednesday afternoon and send you all the details once everything has been confirmed."
+      },
+      {
+        "partials": [
+          {
+            "text": "Stop. Make it",
+            "voiced_ms": 0
+          },
+          {
+            "text": "Stop. Make it Friday instead.",
+            "voiced_ms": 600
+          }
+        ],
+        "response": "Understood. I will make it Friday instead."
+      }
+    ],
+    "word_ms": 200
+  },
+  "tts": "deterministic tone, not speech"
+}

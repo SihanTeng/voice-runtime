@@ -1,0 +1,404 @@
+{
+  "A": {
+    "turns": [
+      {
+        "turn_id": 1,
+        "generation_id": 1,
+        "endpoint_latency_ms": 240,
+        "turn_end_to_first_audio_ms": 380,
+        "played_samples": 64000
+      }
+    ],
+    "interruptions": [],
+    "overlap_duration_ms": 0,
+    "false_interruption_count": 0,
+    "stale_chunk_received_count": 0,
+    "stale_chunk_played_count": 0,
+    "maximum_queue_lengths": [
+      {
+        "name": "input_audio",
+        "capacity": 50,
+        "peak": 1
+      },
+      {
+        "name": "provider_events",
+        "capacity": 32,
+        "peak": 7
+      },
+      {
+        "name": "cancel_control",
+        "capacity": 1,
+        "peak": 0
+      },
+      {
+        "name": "preroll_frames",
+        "capacity": 15,
+        "peak": 15
+      },
+      {
+        "name": "status_watch",
+        "capacity": 1,
+        "peak": 1
+      },
+      {
+        "name": "journal",
+        "capacity": 4096,
+        "peak": 7
+      },
+      {
+        "name": "asr_input_1",
+        "capacity": 50,
+        "peak": 6
+      },
+      {
+        "name": "llm_tts_1",
+        "capacity": 32,
+        "peak": 15
+      },
+      {
+        "name": "audio_in_flight_1",
+        "capacity": 8000,
+        "peak": 8000
+      },
+      {
+        "name": "playback_audio_samples",
+        "capacity": 8000,
+        "peak": 8000
+      }
+    ]
+  },
+  "B": {
+    "turns": [
+      {
+        "turn_id": 1,
+        "generation_id": 1,
+        "endpoint_latency_ms": 240,
+        "turn_end_to_first_audio_ms": 380,
+        "played_samples": 64000
+      }
+    ],
+    "interruptions": [],
+    "overlap_duration_ms": 0,
+    "false_interruption_count": 0,
+    "stale_chunk_received_count": 0,
+    "stale_chunk_played_count": 0,
+    "maximum_queue_lengths": [
+      {
+        "name": "input_audio",
+        "capacity": 50,
+        "peak": 1
+      },
+      {
+        "name": "provider_events",
+        "capacity": 32,
+        "peak": 7
+      },
+      {
+        "name": "cancel_control",
+        "capacity": 1,
+        "peak": 0
+      },
+      {
+        "name": "preroll_frames",
+        "capacity": 15,
+        "peak": 15
+      },
+      {
+        "name": "status_watch",
+        "capacity": 1,
+        "peak": 1
+      },
+      {
+        "name": "journal",
+        "capacity": 4096,
+        "peak": 7
+      },
+      {
+        "name": "asr_input_1",
+        "capacity": 50,
+        "peak": 6
+      },
+      {
+        "name": "llm_tts_1",
+        "capacity": 32,
+        "peak": 15
+      },
+      {
+        "name": "audio_in_flight_1",
+        "capacity": 8000,
+        "peak": 8000
+      },
+      {
+        "name": "playback_audio_samples",
+        "capacity": 8000,
+        "peak": 8000
+      }
+    ]
+  },
+  "C": {
+    "turns": [
+      {
+        "turn_id": 1,
+        "generation_id": 1,
+        "endpoint_latency_ms": 240,
+        "turn_end_to_first_audio_ms": 380,
+        "played_samples": 21120
+      },
+      {
+        "turn_id": 2,
+        "generation_id": 2,
+        "endpoint_latency_ms": 240,
+        "turn_end_to_first_audio_ms": 380,
+        "played_samples": 22400
+      }
+    ],
+    "interruptions": [
+      {
+        "generation_id": 1,
+        "onset_ms": 2380,
+        "speech_start_detection_ms": 20,
+        "interruption_decision_ms": 100,
+        "playback_stop_ms": 0,
+        "interruption_to_playback_stop_ms": 120
+      }
+    ],
+    "overlap_duration_ms": 120,
+    "false_interruption_count": 0,
+    "stale_chunk_received_count": 2,
+    "stale_chunk_played_count": 0,
+    "maximum_queue_lengths": [
+      {
+        "name": "input_audio",
+        "capacity": 50,
+        "peak": 1
+      },
+      {
+        "name": "provider_events",
+        "capacity": 32,
+        "peak": 16
+      },
+      {
+        "name": "cancel_control",
+        "capacity": 1,
+        "peak": 0
+      },
+      {
+        "name": "preroll_frames",
+        "capacity": 15,
+        "peak": 15
+      },
+      {
+        "name": "status_watch",
+        "capacity": 1,
+        "peak": 1
+      },
+      {
+        "name": "journal",
+        "capacity": 4096,
+        "peak": 16
+      },
+      {
+        "name": "asr_input_1",
+        "capacity": 50,
+        "peak": 6
+      },
+      {
+        "name": "llm_tts_1",
+        "capacity": 32,
+        "peak": 15
+      },
+      {
+        "name": "audio_in_flight_1",
+        "capacity": 8000,
+        "peak": 8000
+      },
+      {
+        "name": "asr_input_2",
+        "capacity": 50,
+        "peak": 15
+      },
+      {
+        "name": "llm_tts_2",
+        "capacity": 32,
+        "peak": 5
+      },
+      {
+        "name": "audio_in_flight_2",
+        "capacity": 8000,
+        "peak": 8000
+      },
+      {
+        "name": "playback_audio_samples",
+        "capacity": 8000,
+        "peak": 8000
+      }
+    ]
+  },
+  "D": {
+    "turns": [
+      {
+        "turn_id": 1,
+        "generation_id": 1,
+        "endpoint_latency_ms": 240,
+        "turn_end_to_first_audio_ms": 380,
+        "played_samples": 64000
+      }
+    ],
+    "interruptions": [],
+    "overlap_duration_ms": 0,
+    "false_interruption_count": 0,
+    "stale_chunk_received_count": 0,
+    "stale_chunk_played_count": 0,
+    "maximum_queue_lengths": [
+      {
+        "name": "input_audio",
+        "capacity": 50,
+        "peak": 1
+      },
+      {
+        "name": "provider_events",
+        "capacity": 32,
+        "peak": 7
+      },
+      {
+        "name": "cancel_control",
+        "capacity": 1,
+        "peak": 0
+      },
+      {
+        "name": "preroll_frames",
+        "capacity": 15,
+        "peak": 15
+      },
+      {
+        "name": "status_watch",
+        "capacity": 1,
+        "peak": 1
+      },
+      {
+        "name": "journal",
+        "capacity": 4096,
+        "peak": 7
+      },
+      {
+        "name": "asr_input_1",
+        "capacity": 50,
+        "peak": 6
+      },
+      {
+        "name": "llm_tts_1",
+        "capacity": 32,
+        "peak": 15
+      },
+      {
+        "name": "audio_in_flight_1",
+        "capacity": 8000,
+        "peak": 8000
+      },
+      {
+        "name": "playback_audio_samples",
+        "capacity": 8000,
+        "peak": 8000
+      }
+    ]
+  },
+  "E": {
+    "turns": [
+      {
+        "turn_id": 1,
+        "generation_id": 1,
+        "endpoint_latency_ms": 240,
+        "turn_end_to_first_audio_ms": 380,
+        "played_samples": 21120
+      },
+      {
+        "turn_id": 2,
+        "generation_id": 2,
+        "endpoint_latency_ms": 240,
+        "turn_end_to_first_audio_ms": 380,
+        "played_samples": 22400
+      }
+    ],
+    "interruptions": [
+      {
+        "generation_id": 1,
+        "onset_ms": 2380,
+        "speech_start_detection_ms": 20,
+        "interruption_decision_ms": 100,
+        "playback_stop_ms": 0,
+        "interruption_to_playback_stop_ms": 120
+      }
+    ],
+    "overlap_duration_ms": 120,
+    "false_interruption_count": 0,
+    "stale_chunk_received_count": 2,
+    "stale_chunk_played_count": 0,
+    "maximum_queue_lengths": [
+      {
+        "name": "input_audio",
+        "capacity": 50,
+        "peak": 1
+      },
+      {
+        "name": "provider_events",
+        "capacity": 32,
+        "peak": 16
+      },
+      {
+        "name": "cancel_control",
+        "capacity": 1,
+        "peak": 0
+      },
+      {
+        "name": "preroll_frames",
+        "capacity": 15,
+        "peak": 15
+      },
+      {
+        "name": "status_watch",
+        "capacity": 1,
+        "peak": 1
+      },
+      {
+        "name": "journal",
+        "capacity": 4096,
+        "peak": 16
+      },
+      {
+        "name": "asr_input_1",
+        "capacity": 50,
+        "peak": 6
+      },
+      {
+        "name": "llm_tts_1",
+        "capacity": 32,
+        "peak": 15
+      },
+      {
+        "name": "audio_in_flight_1",
+        "capacity": 8000,
+        "peak": 8000
+      },
+      {
+        "name": "asr_input_2",
+        "capacity": 50,
+        "peak": 15
+      },
+      {
+        "name": "llm_tts_2",
+        "capacity": 32,
+        "peak": 5
+      },
+      {
+        "name": "audio_in_flight_2",
+        "capacity": 8000,
+        "peak": 8000
+      },
+      {
+        "name": "playback_audio_samples",
+        "capacity": 8000,
+        "peak": 8000
+      }
+    ]
+  }
+}
