@@ -2,5 +2,6 @@
 pub mod audio;
 pub mod clock;
 pub mod event;
+pub mod playback;
 pub mod provider;
 pub mod queue;
