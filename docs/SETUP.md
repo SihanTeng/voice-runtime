@@ -1,0 +1,106 @@
+# 环境安装与面试验收
+
+所有项目命令均在包含 `Cargo.toml`、`Cargo.lock`、`rust-toolchain.toml` 的根目录执行。接受完整 Git 仓库或源码压缩包；压缩包应保留隐藏目录 `.githooks/`，完整门禁的 hook 自检会读取它。仅运行或测试不要求配置 Git 用户名、安装项目 hook、申请模型账号或创建 `.env`。
+
+## 1. 安装系统工具
+
+本地验证平台是 macOS Apple Silicon。Linux 提供 Ubuntu/Debian 安装步骤和 GitHub Actions 配置，但未在本次交付中实际执行 Linux/托管 CI；原生 Windows 的 shell/hook 流程未验证，可在已有 WSL Ubuntu 中按 Linux 步骤操作。
+
+**macOS：** 安装 Apple Command Line Tools，提供编译器、链接器和 Git；若已安装可跳过。
+
+```sh
+xcode-select --install
+```
+
+等待系统安装窗口完成，再检查：
+
+```sh
+git --version
+cc --version
+python3 --version
+```
+
+仅构建、运行和 Rust 测试不需要 Python。完整 `scripts/check.sh` 的 hook 自检需要 Python ≥3.9；若没有可用的 `python3`，从 [Python 官方 macOS 下载页](https://www.python.org/downloads/macos/) 安装后重新打开终端。
+
+**Ubuntu/Debian（apt）：** 系统编译/链接工具也供可选的 `webrtc-vad` C 代码使用。
+
+```sh
+sudo apt-get update
+sudo apt-get install -y build-essential curl ca-certificates git python3
+python3 --version
+```
+
+`python3` 须为 3.9 或更新版本。使用较老发行版时先升级 Python；无需 pip、虚拟环境或第三方 Python 包。
+
+## 2. 安装固定 Rust 工具链
+
+已安装 rustup 的机器直接跳到下一段。否则使用 [Rust 官方安装方式](https://rust-lang.org/tools/install/)；这里只安装 rustup，不额外安装随时间变化的默认 stable：
+
+```sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal --default-toolchain none
+. "$HOME/.cargo/env"
+```
+
+进入拿到的项目根目录后安装固定版本；不需要修改全局默认工具链：
+
+```sh
+rustup toolchain install 1.96.1 --profile minimal --component rustfmt --component clippy
+rustup show active-toolchain
+rustc --version
+cargo --version
+```
+
+`rustc --version` 应包含 `1.96.1`。仓库的 [`rust-toolchain.toml`](../rust-toolchain.toml) 声明版本与组件，rustup 的[目录工具链规则](https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file)会在此目录选择它；`Cargo.lock` 固定依赖，后续始终使用 `--locked`。首次安装/编译需要能访问 Rust 分发服务器和 crates.io；这是工具链与依赖下载，不是运行时调用模型服务。
+
+## 3. 按顺序验收
+
+最短流程与 [README](../README.md#面试官快速验收) 相同：
+
+```sh
+cargo test --locked
+cargo run --locked --release -- run --scenario all --output output
+cargo run --locked --release -- replay output/C/trace.jsonl --output output/replay
+```
+
+测试应全部成功，默认共 28 项（Cargo 分测试二进制分别输出结果）；32 个属性案例和 8 个并发 session 已包含在这些测试内部。默认使用虚拟时间，完整句 A 的 endpoint 延迟是 240ms，C 的开口→模拟停播是 120ms，所有场景 stale played 为 0。终端命令都应返回 0；可以紧接命令运行 `echo $?` 查看。
+
+| 产物 | 阅读用途 |
+|---|---|
+| `output/metrics.json` | A–E 指标汇总 |
+| `output/C/trace.jsonl` | 按顺序解释打断、清队列、迟到丢弃、下一轮和关闭 |
+| `output/C/playback-truth.json` | 对比生成、入队、完整听到文本和部分词 |
+| `output/C/lifecycle.json` | 确认 `active_tasks: 0`、`trace_complete: true`、`violations: []` |
+| `output/C/sequence.mmd` | Mermaid 时序图；运行或验收不依赖 Mermaid 安装 |
+| `output/replay/audit.json` | 从 trace 独立重建的指标在 `metrics` 中，违规列表在 `violations` 中；同目录另含账本与 WAV |
+
+`played.wav` 是确定性 Fake TTS 方波，不是可懂的合成语音。CLI 不连接硬件播放器；没有声音不是安装失败。重复执行会覆盖所指定输出目录中的同名产物，需要保留结果时换一个 `--output` 目录。
+
+完整质量门禁及真实 VAD：
+
+```sh
+sh scripts/check.sh
+cargo run --locked --release --features real-vad -- wav tests/fixtures/speech16.wav \
+  --script tests/fixtures/wav-script.json --output output/wav
+```
+
+门禁依次检查 rustfmt、Clippy warnings-as-errors、默认 28 项/全部 features 29 项测试、release 构建和隔离临时 Git 仓库中的 hook 自检；自检忽略系统/全局 Git 配置，不依赖个人签名密钥，不会安装本项目 hook，也不会修改项目的暂存内容。WAV 与脚本已随项目提供，不需额外下载模型；ASR/LLM/TTS 的内容仍是脚本。完整检查会包含真实时钟测试和临时 fixture 编译，耗时比默认虚拟场景长；首次编译时长取决于机器与下载速度，README 的 1–2 秒只指编译后的场景运行。
+
+## 4. 常见问题
+
+| 现象 | 处理 |
+|---|---|
+| `cargo` / `rustup: command not found` | 重新打开终端，或执行 `. "$HOME/.cargo/env"`，检查 `~/.cargo/bin` 在 PATH 中。 |
+| 工具链不是 1.96.1，或报告不支持 edition 2024 | 确认在项目根目录并运行 `rustup show`；检查是否有 `RUSTUP_TOOLCHAIN` 环境变量、目录 override 或命令行 `+stable` 覆盖了仓库配置，不要删除版本锁定文件。 |
+| `linker cc not found` / C 编译失败 | 完成上面的 Command Line Tools 或 `build-essential` 安装；在 macOS 可用 `xcode-select -p` 确认开发工具路径。 |
+| 下载超时、证书错误、找不到 crate | 检查到 Rust 分发服务器和 crates.io 的网络/代理与系统 CA；保留锁文件。依赖预先缓存后可用 `cargo test --locked --offline`，空缓存无法离线首次编译。 |
+| `python3` 缺失或版本过低 | 安装 Python ≥3.9 后重跑完整门禁；Rust 核心测试可先用 `cargo test --locked`。 |
+| WAV 提示缺少 real-vad | 使用上述带 `--features real-vad` 的 Cargo 命令，避免误运行之前默认 features 编译的二进制。 |
+| `could not find Cargo.toml` / fixture 文件不存在 | 切换到完整源码根目录；确认 `tests/fixtures/` 随源码交付。 |
+| `not a git repository`（安装 hook 时） | 源码压缩包无需安装 hook，直接运行/测试；仅在准备提交的 Git checkout 中运行 `scripts/install-hooks.sh`。 |
+| `examples/timeout.json` 返回非零 | 这是故意注入 Provider 超时的预期结果；查看其输出 trace，普通 A–E 应返回 0。 |
+
+无需权限或安装条件时，可以直接阅读已提交的 [样例分析](../sample-output/ANALYSIS.md)、[设计说明](../DESIGN.md)和[评审验证记录](../sample-output/review-validation.json)。不应将模拟消费的停播时间当作真实设备或声学测量。
+
+## 5. 本次安装流程验证范围
+
+从已提交源码导出到含空格的临时目录，没有 `.git`、没有现成 `target/`，按上述顺序完成默认 28 项测试、A–E、独立 replay 和真实 WAV/VAD。默认测试含首次 debug 编译实际耗时 23.799 秒，全场景命令含首次 release 编译耗时 10.361 秒；replay 指标与在线结果相同，账本和已消费 WAV 逐字节相同。此次复用了本机已安装的 Rust 1.96.1 和 crate 下载缓存，并禁止 Cargo 联网，因此验证的是干净源码/构建目录的可运行性，没有冒充全新操作系统安装或首次下载验证；完整记录见 [setup-validation.json](../sample-output/setup-validation.json)。

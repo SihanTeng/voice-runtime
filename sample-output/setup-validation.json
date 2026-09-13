@@ -1,0 +1,48 @@
+{
+  "source_commit": "73e19caf8184ef3567a647da66f4418b75d240d8",
+  "checked_at_utc": "2026-09-13T11:31:59.037154+00:00",
+  "platform": "macOS Apple Silicon",
+  "source_export_without_git": true,
+  "empty_initial_target": true,
+  "path_contains_spaces": true,
+  "toolchain_and_registry_cache_preinstalled": true,
+  "cargo_network_offline": true,
+  "fresh_os_install_verified": false,
+  "linux_verified": false,
+  "commands": [
+    {
+      "command": "rustup show",
+      "exit_code": 0,
+      "seconds": 0.022
+    },
+    {
+      "command": "cargo test --locked",
+      "exit_code": 0,
+      "seconds": 23.799
+    },
+    {
+      "command": "cargo run --locked --release -- run --scenario all --output output",
+      "exit_code": 0,
+      "seconds": 10.361
+    },
+    {
+      "command": "cargo run --locked --release -- replay output/C/trace.jsonl --output output/replay",
+      "exit_code": 0,
+      "seconds": 0.385
+    },
+    {
+      "command": "cargo run --locked --release --features real-vad -- wav tests/fixtures/speech16.wav --script tests/fixtures/wav-script.json --output output/wav",
+      "exit_code": 0,
+      "seconds": 4.138
+    }
+  ],
+  "expected_metrics_and_lifecycle_match": true,
+  "replay_audit_metrics_match": true,
+  "replay_ledger_and_consumed_wav_byte_identical": true,
+  "default_tests_passed": 28,
+  "hook_self_check_with_global_signing_required": {
+    "command": "GIT_CONFIG_GLOBAL=<temporary config requiring signing via /usr/bin/false> python3 scripts/test_hooks.py",
+    "exit_code": 0,
+    "scope": "Updated hook self-check ignores system/global Git settings; user Git configuration remains unchanged."
+  }
+}

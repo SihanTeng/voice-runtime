@@ -13,6 +13,10 @@ def run(cwd, *args, ok=True):
     env = os.environ.copy()
     for key in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
         env.pop(key, None)
+    # Disposable fixture commits must not depend on a reviewer's signing keys,
+    # global hooks or checkout preferences. Repository-local settings still apply.
+    env["GIT_CONFIG_NOSYSTEM"] = "1"
+    env["GIT_CONFIG_GLOBAL"] = os.devnull
     result = subprocess.run(args, cwd=cwd, env=env, capture_output=True, text=True)
     if ok and result.returncode:
         raise AssertionError(f"{args}:\n{result.stdout}\n{result.stderr}")
