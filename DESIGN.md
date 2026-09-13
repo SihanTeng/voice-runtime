@@ -107,8 +107,8 @@ Playback sink 的消费结果，以及它写出来的账本。合成完成、入
 
 核心测试注入时钟，用 Tokio paused time 推到下一个截止时间。A–E 断言的是行为：犹豫时不提前播放、打断 250ms 内停、噪声不永久中断、stale 播放计数为 0、队列有上限、关闭后没有还在跑的任务。另外还有真实时间打断、关闭后写 sink 的探针、固定种子属性测试、8 个并发 session、WAV 和真实 VAD。`audit` 从 trace 重建 ReplyRecord，和运行时账本对账。
 
-日志是结构化 JSONL，包含 timestamp、session_id、turn_id、generation_id、event_type、sequence_number、payload。owner 通过 `EventData` 枚举统一输出，reader 先校验结构再进行独立账本审计；缺字段不会填 0。只支持当前 schema 3，仓库样例全部重新生成；不维护历史日志兼容分支。
+日志是结构化 JSONL，包含 timestamp、session_id、turn_id、generation_id、event_type、sequence_number、payload。owner 通过 `EventData` 枚举统一输出，reader 先校验结构再进行独立账本审计；
 
-额外阶段指标记录 ASR 首 partial/final 等待、LLM TTFT、TTS 首音频、endpoint→首音频，以及消费区间之间的播放断续。mpsc 队列以同容量时间戳 FIFO 记录最老项等待，sample 许可/watch 没有此观测时不填 0；另记输入年龄和 generation cancel→任务退出。可选 `evaluate` 命令串行运行有限次固定种子案例，输出逐次日志和分位数，不参与 session 决策；失败和缺失值保留，未到 endpoint 的失败没有 turn 样本，模拟 p99 不能证明生产 SLO。
+额外阶段指标记录 ASR 首 partial/final 等待、LLM TTFT、TTS 首音频、endpoint→首音频，以及消费区间之间的播放断续。mpsc 队列以同容量时间戳 FIFO 记录最老项等待，sample 许可/watch 没有此观测时不填 0；另记输入年龄和 generation cancel→任务退出。可选 `evaluate` 命令串行运行有限次固定种子案例，输出逐次日志和分位数，不参与 session 决策；失败和缺失值保留，未到 endpoint 的失败没有 turn 样本。
 
-journal 有界存在内存里，受控结束后才落盘。进程崩溃会丢尚未导出的事件。单 session 默认最多 300 秒。没有完整对话记忆、没有真实模型、没有硬件播放，也没有部署。
+journal 有界存在内存里，受控结束后才落盘。进程崩溃会丢尚未导出的事件。单 session 默认最多 300 秒。

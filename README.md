@@ -146,4 +146,4 @@ C 的 120ms 拆开是检测 20ms + 连续语音确认 100ms + owner 停播 0ms�
 - 播放进度只看 sink 实际 consume 了多少 sample
 - `cancel()` 只是通知，不代表上游已经停
 
-提交的代码我理解。owner 事件循环、endpoint、打断、Playback 账本、关闭时的 join，我能讲清楚为什么这样写。
+提交的代码我理解。
