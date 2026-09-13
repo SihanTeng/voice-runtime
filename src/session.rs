@@ -134,6 +134,14 @@ impl SessionConfig {
                 || timing.first_ms > 300_000
                 || timing.interval_ms > 300_000
                 || timing.late_chunks > 128
+                || timing.late_delay_ms > 10_000
+                || [
+                    timing.first_timeout_ms,
+                    timing.idle_timeout_ms,
+                    timing.total_timeout_ms,
+                ]
+                .iter()
+                .any(|ms| *ms > 3_600_000)
                 || timing.first_timeout_ms == 0
                 || timing.idle_timeout_ms == 0
                 || timing.total_timeout_ms == 0
@@ -965,7 +973,7 @@ impl Session {
                 Some(output) = self.output.recv() => self.on_output(output),
             }
         }
-        let reason = self.failed.clone().unwrap_or_else(|| {
+        let mut reason = self.failed.clone().unwrap_or_else(|| {
             if journal_failed.get() {
                 "journal_failure".into()
             } else {
@@ -978,7 +986,9 @@ impl Session {
         match self.playback.close(self.clock.now_ms()) {
             Ok(p) => self.progress(p),
             Err(e) => {
-                self.failed = Some(e.to_string());
+                reason = e.to_string();
+                self.failed = Some(reason.clone());
+                self.emit("sink_failed", None, json!({"reason": reason}));
             }
         }
         self.hard.cancel();

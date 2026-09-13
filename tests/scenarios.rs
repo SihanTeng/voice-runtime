@@ -143,3 +143,29 @@ async fn e_two_late_chunks_are_received_but_never_enqueued_or_played() {
         && e.identity() == cancelled.identity()
         && e.sequence_number > cancelled.sequence_number));
 }
+
+#[tokio::test(start_paused = true)]
+async fn old_audio_arriving_after_new_playback_starts_is_still_rejected() {
+    let mut config = SessionConfig::default();
+    config.tts.late_delay_ms = 1000;
+    let report = tokio::task::LocalSet::new()
+        .run_until(scenario::run("E", config, Rc::new(TokioClock::default())))
+        .await;
+    invariants(&report);
+    let second = report
+        .events
+        .iter()
+        .filter(|e| e.event_type == "playback_started")
+        .nth(1)
+        .unwrap()
+        .timestamp;
+    let stale: Vec<_> = report
+        .events
+        .iter()
+        .filter(|e| {
+            e.event_type == "stale_event_dropped" && e.payload["source_type"] == "tts_chunk"
+        })
+        .collect();
+    assert_eq!(stale.len(), 2);
+    assert!(stale.iter().all(|e| e.timestamp > second));
+}

@@ -16,6 +16,8 @@ pub struct Timing {
     pub stall_at: Option<usize>,
     pub panic_at: Option<usize>,
     pub late_chunks: usize,
+    /// Additional transport delay per packet after soft cancellation.
+    pub late_delay_ms: u64,
     pub first_timeout_ms: u64,
     pub idle_timeout_ms: u64,
     pub total_timeout_ms: u64,
@@ -31,6 +33,7 @@ impl Default for Timing {
             stall_at: None,
             panic_at: None,
             late_chunks: 0,
+            late_delay_ms: 0,
             first_timeout_ms: 1000,
             idle_timeout_ms: 500,
             total_timeout_ms: 30_000,
@@ -128,6 +131,12 @@ impl Pacer {
             }
             _ = self.clock.sleep_until(start.saturating_add(timeout)), if delay > timeout => return Err(ProviderError::Timeout),
             _ = self.clock.sleep_until(start.saturating_add(delay)) => {}
+        }
+        if self.remaining_late.is_some() && self.timing.late_delay_ms > 0 {
+            tokio::select! { biased;
+                _ = hard.cancelled() => return Err(ProviderError::Cancelled),
+                _ = self.clock.sleep_until(self.clock.now_ms() + self.timing.late_delay_ms) => {}
+            }
         }
         self.active_ms += self.clock.now_ms() - start;
         self.index += 1;

@@ -136,6 +136,7 @@ async fn execute(command: Command) -> Result<()> {
                 vec![selected.as_str()]
             };
             let mut metrics = std::collections::BTreeMap::new();
+            let mut failed = false;
             fs::create_dir_all(&output)?;
             write_json(
                 output.join("manifest.json"),
@@ -145,10 +146,17 @@ async fn execute(command: Command) -> Result<()> {
             for name in names {
                 let report =
                     scenario::run(name, config.clone(), Rc::new(TokioClock::default())).await;
+                failed |= report.close_reason != "active_close"
+                    || report.events.iter().any(|e| {
+                        e.event_type == "provider_failed" || e.event_type == "turn_failed"
+                    });
                 metrics.insert(name, write_report(&output.join(name), &report)?);
             }
             write_json(output.join("metrics.json"), &metrics)?;
             println!("{}", serde_json::to_string_pretty(&metrics)?);
+            if failed {
+                return Err("scenario failed; inspect lifecycle.json and trace.jsonl".into());
+            }
         }
         Command::Wav {
             input,

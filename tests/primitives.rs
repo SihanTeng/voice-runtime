@@ -7,6 +7,38 @@ use voice_runtime::{
 };
 
 #[tokio::test(start_paused = true)]
+async fn idle_and_total_timeouts_exclude_downstream_waits() {
+    let clock: Rc<dyn Clock> = Rc::new(TokioClock::default());
+    let soft = CancellationToken::new();
+    let hard = CancellationToken::new();
+    let mut pacer = Pacer::new(
+        Timing {
+            first_ms: 10,
+            interval_ms: 80,
+            idle_timeout_ms: 50,
+            ..Default::default()
+        },
+        clock.clone(),
+    );
+    pacer.next(&soft, &hard).await.unwrap();
+    clock.sleep_until(1010).await; // Simulated downstream backpressure, not provider work.
+    assert_eq!(pacer.next(&soft, &hard).await, Err(ProviderError::Timeout));
+    assert_eq!(clock.now_ms(), 1060);
+    let mut pacer = Pacer::new(
+        Timing {
+            first_ms: 40,
+            interval_ms: 40,
+            total_timeout_ms: 60,
+            ..Default::default()
+        },
+        clock.clone(),
+    );
+    pacer.next(&soft, &hard).await.unwrap();
+    assert_eq!(pacer.next(&soft, &hard).await, Err(ProviderError::Timeout));
+    assert_eq!(clock.now_ms(), 1120);
+}
+
+#[tokio::test(start_paused = true)]
 async fn soft_cancel_delivers_exactly_two_late_packets_but_hard_cancel_stops() {
     let clock: Rc<dyn Clock> = Rc::new(TokioClock::default());
     let mut pacer = Pacer::new(
