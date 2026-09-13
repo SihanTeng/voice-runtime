@@ -725,6 +725,11 @@ impl Session {
                     self.config.text_capacity,
                 );
                 self.meters.push(meter);
+                let budget_meter = QueueMeter::new(
+                    format!("audio_in_flight_{}", id.generation_id),
+                    self.config.playback_samples,
+                );
+                self.meters.push(budget_meter.clone());
                 self.spawn(
                     "llm",
                     Some(turn),
@@ -746,6 +751,7 @@ impl Session {
                         Arc::new(Semaphore::new(self.config.playback_samples)),
                         self.config.tts.clone(),
                         ctx,
+                        budget_meter,
                     ),
                 );
             }
@@ -872,17 +878,18 @@ impl Session {
         let fail_after = self.config.journal_fail_after;
         let journal_failed = Rc::new(Cell::new(false));
         let journal_flag = journal_failed.clone();
-        let journal = tokio::task::spawn_local(async move {
-            let mut events = Vec::new();
-            while let Some(event) = log_rx.recv().await {
-                if events.len() >= limit || fail_after.is_some_and(|n| events.len() >= n) {
-                    journal_flag.set(true);
-                    break;
+        let journal =
+            tokio_util::task::AbortOnDropHandle::new(tokio::task::spawn_local(async move {
+                let mut events = Vec::new();
+                while let Some(event) = log_rx.recv().await {
+                    if events.len() >= limit || fail_after.is_some_and(|n| events.len() >= n) {
+                        journal_flag.set(true);
+                        break;
+                    }
+                    events.push(event);
                 }
-                events.push(event);
-            }
-            events
-        });
+                events
+            }));
         self.emit("session_started", None, json!({"config": self.config, "clock": "monotonic_ms", "playback": "simulated_consumption"}));
         let raw = self.raw.take().expect("raw receiver owned once");
         self.spawn(

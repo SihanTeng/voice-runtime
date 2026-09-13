@@ -6,7 +6,7 @@ use crate::{
     fake::{AsrProvider, LlmProvider, TtsProvider, VadProvider},
     playback::{AudioChunk, Packet},
     provider::{Pacer, ProviderError, Timing},
-    queue::Sender,
+    queue::{QueueMeter, Sender},
 };
 use std::{rc::Rc, sync::Arc};
 use tokio::sync::{Semaphore, mpsc};
@@ -149,6 +149,7 @@ pub async fn tts_worker(
     budget: Arc<Semaphore>,
     timing: Timing,
     ctx: WorkerContext,
+    budget_meter: QueueMeter,
 ) -> Result<(), ProviderError> {
     let mut pacer = Pacer::new(timing, ctx.clock.clone());
     let word_samples = provider.samples_per_word();
@@ -178,6 +179,7 @@ pub async fn tts_worker(
                 permit = budget.clone().acquire_many_owned(samples as u32) => permit.map_err(|_| ProviderError::Downstream)?,
                 _ = ctx.clock.sleep_until(deadline) => return Err(ProviderError::Downstream),
             };
+            budget_meter.observe(budget_meter.snapshot().capacity - budget.available_permits());
             pacer.next(&ctx.soft, &ctx.hard).await?;
             let pcm = provider.render(&word, offset, samples)?;
             if pcm.len() != samples {
