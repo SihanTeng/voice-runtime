@@ -1,5 +1,3 @@
-# C 场景时序图
-
 ```mermaid
 sequenceDiagram
     participant U as Audio input
@@ -22,4 +20,5 @@ sequenceDiagram
     R->>S: 3360ms playback_started turn=2 gen=2
     R->>S: 4760ms playback_stopped turn=2 gen=2
     R->>R: 4760ms session_closed turn=0 gen=0
+
 ```

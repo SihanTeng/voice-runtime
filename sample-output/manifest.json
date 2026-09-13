@@ -2,6 +2,7 @@
   "audio": "mono PCM16 16000 Hz; 20 ms",
   "config": {
     "asr": {
+      "burst": null,
       "first_ms": 40,
       "first_timeout_ms": 1000,
       "idle_timeout_ms": 500,
@@ -27,6 +28,7 @@
     "event_capacity": 32,
     "input_capacity": 50,
     "input_faults": {
+      "drop_burst": null,
       "drop_every": null,
       "jitter_ms": 0,
       "reorder_every": null,
@@ -34,6 +36,7 @@
     },
     "journal_fail_after": null,
     "llm": {
+      "burst": null,
       "first_ms": 80,
       "first_timeout_ms": 1000,
       "idle_timeout_ms": 500,
@@ -58,6 +61,7 @@
     "shutdown_grace_ms": 500,
     "text_capacity": 32,
     "tts": {
+      "burst": null,
       "first_ms": 60,
       "first_timeout_ms": 1000,
       "idle_timeout_ms": 500,
@@ -71,6 +75,7 @@
       "total_timeout_ms": 30000
     },
     "vad": {
+      "burst": null,
       "first_ms": 0,
       "first_timeout_ms": 1000,
       "idle_timeout_ms": 500,
@@ -89,6 +94,7 @@
     "real_vad": false,
     "turns": [
       {
+        "final_text": null,
         "partials": [
           {
             "text": "Please book it for",
@@ -102,6 +108,7 @@
         "response": "Certainly I can arrange your booking for Wednesday afternoon and send you all the details once everything has been confirmed."
       },
       {
+        "final_text": null,
         "partials": [
           {
             "text": "Stop. Make it",

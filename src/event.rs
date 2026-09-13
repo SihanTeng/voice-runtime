@@ -12,7 +12,6 @@ pub struct Identity {
 pub struct Event {
     /// Monotonic milliseconds relative to session start, not wall-clock time.
     pub timestamp: u64,
-    #[serde(default = "legacy_schema")]
     pub schema_version: u32,
     pub session_id: String,
     pub turn_id: Option<u64>,
@@ -37,10 +36,6 @@ pub fn write_jsonl(events: &[Event], mut writer: impl std::io::Write) -> std::io
         writer.write_all(b"\n")?;
     }
     writer.flush()
-}
-
-fn legacy_schema() -> u32 {
-    1
 }
 
 /// All owner emissions use this typed payload; the JSONL envelope remains stable.
@@ -95,28 +90,9 @@ pub enum EventData {
     AsrPartial {
         text: String,
         through_sequence: u64,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        update: Option<crate::transcript::AsrUpdate>,
     },
     AsrFinal {
         text: String,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        update: Option<crate::transcript::AsrUpdate>,
-    },
-    RecoveryStarted {
-        failed_generation_id: u64,
-        stage: String,
-        speech_end_ms: u64,
-        played_before_failure: usize,
-        heard_context: String,
-    },
-    BackchannelRejected {
-        text: String,
-        duration_ms: u64,
-    },
-    AsrResultRejected {
-        revision: u64,
-        reason: String,
     },
     LlmRequested {
         transcript: String,
@@ -186,7 +162,7 @@ impl Event {
         let mut wire = serde_json::to_value(data).expect("typed event serialization");
         Self {
             timestamp,
-            schema_version: 2,
+            schema_version: 3,
             session_id,
             turn_id: id.map(|i| i.turn_id),
             generation_id: id.and_then(|i| (i.generation_id != 0).then_some(i.generation_id)),
@@ -199,10 +175,7 @@ impl Event {
         }
     }
     pub fn decode(&self) -> Result<EventData, String> {
-        if ![1, 2].contains(&self.schema_version)
-            || self.session_id.is_empty()
-            || self.session_id.len() > 128
-        {
+        if self.schema_version != 3 || self.session_id.is_empty() || self.session_id.len() > 128 {
             return Err("unsupported schema or invalid session identity".into());
         }
         let data: EventData = serde_json::from_value(
@@ -211,8 +184,7 @@ impl Event {
         .map_err(|e| format!("{}: {e}", self.event_type))?;
         let needs_generation = matches!(
             data,
-            EventData::RecoveryStarted { .. }
-                | EventData::EndpointCommitted { .. }
+            EventData::EndpointCommitted { .. }
                 | EventData::AsrFinal { .. }
                 | EventData::LlmRequested { .. }
                 | EventData::LlmChunk { .. }
@@ -239,42 +211,12 @@ impl Event {
                 | EventData::SpeechEnd { .. }
                 | EventData::SpeechCandidateRejected { .. }
                 | EventData::EndpointCandidateRevoked {}
-                | EventData::BackchannelRejected { .. }
-                | EventData::AsrResultRejected { .. }
                 | EventData::TurnFailed { .. }
         ) && self.turn_id.is_none_or(|id| id == 0)
         {
             return Err("missing turn identity".into());
         }
-        if self.schema_version == 2
-            && matches!(
-                &data,
-                EventData::AsrPartial { update: None, .. }
-                    | EventData::AsrFinal { update: None, .. }
-            )
-        {
-            return Err("ASR revision metadata missing".into());
-        }
         match &data {
-            EventData::AsrPartial {
-                update: Some(update),
-                through_sequence,
-                ..
-            } => {
-                update.validate(1_048_576).map_err(|e| e.to_string())?;
-                if *through_sequence != update.through_sequence {
-                    return Err("ASR freshness metadata mismatch".into());
-                }
-            }
-            EventData::AsrFinal {
-                update: Some(update),
-                ..
-            } => {
-                update.validate(1_048_576).map_err(|e| e.to_string())?;
-                if !update.is_final {
-                    return Err("non-final ASR final event".into());
-                }
-            }
             EventData::TtsRequested { request_ms } if *request_ms > self.timestamp => {
                 return Err("TTS request in the future".into());
             }

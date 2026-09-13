@@ -5,8 +5,6 @@ mod generation;
 mod handle;
 mod input;
 mod lifecycle;
-mod recovery;
-pub use recovery::RecoveryPolicy;
 
 use crate::{
     audio::{AudioFrame, FrameValidator},
@@ -50,33 +48,11 @@ pub struct SessionReport {
 }
 
 impl SessionReport {
-    /// A failure is handled only when its replacement clarification actually completed.
-    pub fn has_unrecovered_failure(&self) -> bool {
-        let completed: std::collections::BTreeSet<_> = self
-            .events
-            .iter()
-            .filter(|e| e.event_type == "playback_stopped" && e.payload["reason"] == "completed")
-            .filter_map(|e| e.generation_id)
-            .collect();
-        let recovered: std::collections::BTreeSet<_> = self
-            .events
-            .iter()
-            .filter(|e| {
-                e.event_type == "recovery_started"
-                    && e.generation_id.is_some_and(|id| completed.contains(&id))
-            })
-            .filter_map(|e| e.payload["failed_generation_id"].as_u64())
-            .collect();
+    pub fn has_provider_failure(&self) -> bool {
         self.events.iter().any(|event| {
-            if event.event_type == "turn_failed" {
-                return event.payload["reason"] != "session_closing";
-            }
-            if event.event_type != "provider_failed" {
-                return false;
-            }
-            event
-                .generation_id
-                .is_none_or(|id| !recovered.contains(&id))
+            event.event_type == "provider_failed"
+                || (event.event_type == "turn_failed"
+                    && event.payload["reason"] != "session_closing")
         })
     }
 }
@@ -143,7 +119,7 @@ impl Session {
             sink,
             config.playback_samples,
             config.max_chunks_per_reply,
-            config.max_turns * if config.recovery.is_some() { 2 } else { 1 },
+            config.max_turns,
         );
         let preroll_meter = QueueMeter::new("preroll_frames", 15);
         let status_meter = QueueMeter::new("status_watch", 1);
@@ -222,8 +198,12 @@ impl Session {
     fn on_output(&mut self, output: Output) {
         match output {
             Output::Vad(frame, voiced) => self.on_vad(frame, voiced),
-            Output::Partial { turn, update } => self.on_partial(turn, update),
-            Output::Final { turn, update } => self.on_final(turn, update),
+            Output::Partial {
+                turn,
+                text,
+                through,
+            } => self.on_partial(turn, text, through),
+            Output::Final { turn, text } => self.on_final(turn, text),
             Output::TtsRequested(id, request_ms) => {
                 if self.generation.as_ref().is_some_and(|g| g.id == id) {
                     self.emit(Some(id), EventData::TtsRequested { request_ms });
@@ -238,7 +218,6 @@ impl Session {
     }
     fn tick(&mut self) {
         self.tick_playback();
-        self.maybe_interrupt();
         self.maybe_endpoint();
     }
 }

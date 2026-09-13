@@ -16,6 +16,4 @@ pub mod shutdown;
 pub mod transport;
 pub mod wav;
 
-pub mod transcript;
-
 pub mod evaluation;

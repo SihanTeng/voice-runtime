@@ -42,7 +42,6 @@ pub struct Trial {
     pub seed: u64,
     pub close_reason: String,
     pub failed: bool,
-    pub recovered: bool,
     pub metrics: audit::Metrics,
     pub violations: Vec<String>,
 }
@@ -54,7 +53,6 @@ pub struct Evaluation {
     pub trials: Vec<Trial>,
     pub distributions: BTreeMap<String, Distribution>,
     pub failures: usize,
-    pub recovered_sessions: usize,
     pub interpretation: String,
 }
 impl Evaluation {
@@ -66,10 +64,9 @@ impl Evaluation {
             trials: Vec::new(),
             distributions: BTreeMap::new(),
             failures: 0,
-            recovered_sessions: 0,
             interpretation: concat!(
                 "Deterministic fake-provider workload; quantiles describe this configuration, not production SLOs. ",
-                "Primary and recovery generations are separate. Inspect counts/missing values and failed trials; ",
+                "Inspect counts/missing values and failed trials; ",
                 "trials without an endpoint have no turn observation. ",
                 "p99 from small samples is not a reliable population estimate."
             ).into(),
@@ -86,16 +83,13 @@ impl Evaluation {
                 .push("incomplete lifecycle or ledger mismatch".into());
         }
         let failed = report.close_reason != "active_close"
-            || report.has_unrecovered_failure()
+            || report.has_provider_failure()
             || !audit.violations.is_empty();
-        let recovered = audit.metrics.recovery_count > 0 && !failed;
         self.failures += usize::from(failed);
-        self.recovered_sessions += usize::from(recovered);
         self.trials.push(Trial {
             seed,
             close_reason: report.close_reason.clone(),
             failed,
-            recovered,
             metrics: audit.metrics,
             violations: audit.violations,
         });
@@ -105,32 +99,17 @@ impl Evaluation {
         let mut values: BTreeMap<String, Vec<Option<u64>>> = BTreeMap::new();
         for trial in &self.trials {
             for turn in &trial.metrics.turns {
-                let kind = if turn.is_recovery {
-                    "recovery"
-                } else {
-                    "primary"
-                };
                 for (metric, value) in [
                     ("endpoint_latency", turn.endpoint_latency_ms),
                     ("turn_end_to_first_audio", turn.turn_end_to_first_audio_ms),
-                    if turn.is_recovery {
-                        (
-                            "recovery_start_to_first_audio",
-                            turn.recovery_start_to_first_audio_ms,
-                        )
-                    } else {
-                        ("endpoint_to_first_audio", turn.endpoint_to_first_audio_ms)
-                    },
+                    ("endpoint_to_first_audio", turn.endpoint_to_first_audio_ms),
                     ("asr_first_partial", turn.asr_first_partial_ms),
                     ("asr_final_wait", turn.asr_final_wait_ms),
                     ("llm_ttft", turn.llm_ttft_ms),
                     ("tts_first_audio", turn.tts_first_audio_ms),
                     ("playback_underrun", Some(turn.playback_underrun_ms)),
                 ] {
-                    values
-                        .entry(format!("{kind}.{metric}"))
-                        .or_default()
-                        .push(value);
+                    values.entry(metric.into()).or_default().push(value);
                 }
             }
             for interruption in &trial.metrics.interruptions {

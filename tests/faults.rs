@@ -89,6 +89,8 @@ async fn every_provider_timeout_is_supervised() {
                 timing.stall_at = Some(0);
                 timing.first_timeout_ms = 200;
                 let report = fault_run(config, false, false).await;
+                // A timeout ends the turn; it does not invent another reply.
+                assert!(report.replies.len() <= 1);
                 assert!(
                     report
                         .events
@@ -97,6 +99,73 @@ async fn every_provider_timeout_is_supervised() {
                     "missing timeout for {stage}"
                 );
             }
+        })
+        .await;
+}
+
+#[tokio::test(start_paused = true)]
+async fn late_worker_failure_cannot_cancel_the_next_user_turn() {
+    tokio::task::LocalSet::new()
+        .run_until(async {
+            let clock: Rc<dyn Clock> = Rc::new(TokioClock::default());
+            let mut config = SessionConfig::default();
+            config.llm.interval_ms = 900;
+            config.llm.idle_timeout_ms = 1000;
+            config.llm.late_chunks = 1;
+            config.llm.late_delay_ms = 1500;
+            let mut factory = FakeProviders {
+                word_ms: 2000,
+                ..Default::default()
+            };
+            factory.turns[1].response = "Friday.".into();
+            let (session, mut handle) = Session::new(
+                config,
+                Rc::new(factory),
+                clock.clone(),
+                Box::<voice_runtime::playback::CountingSink>::default(),
+            )
+            .unwrap();
+            let owner =
+                tokio_util::task::AbortOnDropHandle::new(tokio::task::spawn_local(session.run()));
+            let mut seq = 0;
+            scenario::feed(&handle, clock.as_ref(), &mut seq, 800, 2000, Some(true))
+                .await
+                .unwrap();
+            scenario::feed(&handle, clock.as_ref(), &mut seq, 500, 0, Some(false))
+                .await
+                .unwrap();
+            scenario::wait_until(&mut handle, |s| s.started_replies == 1)
+                .await
+                .unwrap();
+            scenario::feed(&handle, clock.as_ref(), &mut seq, 600, 2000, Some(true))
+                .await
+                .unwrap();
+            scenario::feed(&handle, clock.as_ref(), &mut seq, 500, 0, Some(false))
+                .await
+                .unwrap();
+            scenario::wait_until(&mut handle, |s| s.completed_replies == 1)
+                .await
+                .unwrap();
+            handle.close();
+            let r = owner.await.unwrap();
+            let second_started = r
+                .events
+                .iter()
+                .find(|e| e.event_type == "playback_started" && e.generation_id == Some(2))
+                .unwrap()
+                .timestamp;
+            assert!(r.events.iter().any(|e| e.event_type == "provider_failed"
+                && e.generation_id == Some(1)
+                && e.timestamp > second_started));
+            assert_eq!(r.replies.len(), 2);
+            assert_eq!(r.replies[1].heard_text(), "Friday.");
+            assert!(!r.replies[1].interrupted);
+            assert_eq!(r.active_tasks, 0);
+            assert!(
+                voice_runtime::audit::analyze(&r.events)
+                    .violations
+                    .is_empty()
+            );
         })
         .await;
 }

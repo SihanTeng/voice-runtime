@@ -18,9 +18,7 @@ pub struct TurnMetrics {
     pub llm_ttft_ms: Option<u64>,
     pub tts_first_audio_ms: Option<u64>,
     pub endpoint_to_first_audio_ms: Option<u64>,
-    pub recovery_start_to_first_audio_ms: Option<u64>,
     pub playback_underrun_ms: u64,
-    pub is_recovery: bool,
     pub turn_id: u64,
     pub generation_id: u64,
     pub endpoint_latency_ms: Option<u64>,
@@ -41,9 +39,6 @@ pub struct InterruptionMetrics {
 pub struct Metrics {
     pub maximum_input_age_ms: Option<u64>,
     pub maximum_cancel_to_task_exit_ms: Option<u64>,
-    pub asr_rejected_update_count: u64,
-    pub backchannel_count: u64,
-    pub recovery_count: u64,
     pub turns: Vec<TurnMetrics>,
     pub interruptions: Vec<InterruptionMetrics>,
     pub overlap_duration_ms: Option<u64>,
@@ -136,12 +131,6 @@ pub fn analyze(events: &[Event]) -> Audit {
                         .or_insert(event.timestamp.saturating_sub(*start));
                 }
             }
-            "asr_result_rejected" => {
-                audit.metrics.asr_rejected_update_count += 1;
-            }
-            "backchannel_rejected" => {
-                audit.metrics.backchannel_count += 1;
-            }
             "asr_final" => {
                 if let Some(turn) = audit
                     .metrics
@@ -172,7 +161,7 @@ pub fn analyze(events: &[Event]) -> Audit {
                     );
                 }
             }
-            "endpoint_committed" | "recovery_started" => {
+            "endpoint_committed" => {
                 let Some(id) = event.identity() else {
                     audit.violations.push("endpoint missing identity".into());
                     continue;
@@ -188,20 +177,11 @@ pub fn analyze(events: &[Event]) -> Audit {
                 let end = number(event, "speech_end_ms");
                 ends.insert(generation, end);
                 endpoint_at.insert(generation, event.timestamp);
-                let is_recovery = event.event_type == "recovery_started";
-                audit.metrics.recovery_count += u64::from(is_recovery);
                 audit.metrics.turns.push(TurnMetrics {
                     turn_id: id.turn_id,
                     generation_id: generation,
-                    is_recovery,
-                    asr_first_partial_ms: if is_recovery {
-                        None
-                    } else {
-                        asr_first.get(&id.turn_id).copied()
-                    },
-                    endpoint_latency_ms: (event.event_type == "endpoint_committed")
-                        .then(|| event.timestamp.checked_sub(end))
-                        .flatten(),
+                    asr_first_partial_ms: asr_first.get(&id.turn_id).copied(),
+                    endpoint_latency_ms: event.timestamp.checked_sub(end),
                     ..Default::default()
                 });
             }
@@ -314,14 +294,9 @@ pub fn analyze(events: &[Event]) -> Audit {
                     .iter_mut()
                     .find(|t| t.generation_id == generation)
                 {
-                    let latency = endpoint_at
+                    turn.endpoint_to_first_audio_ms = endpoint_at
                         .get(&generation)
                         .and_then(|at| event.timestamp.checked_sub(*at));
-                    if turn.is_recovery {
-                        turn.recovery_start_to_first_audio_ms = latency;
-                    } else {
-                        turn.endpoint_to_first_audio_ms = latency;
-                    }
                     turn.turn_end_to_first_audio_ms = ends
                         .get(&generation)
                         .and_then(|end| event.timestamp.checked_sub(*end));

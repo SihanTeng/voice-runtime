@@ -80,17 +80,10 @@ async fn burst_latency_and_packet_loss_are_seeded_and_reproducible() {
     }
 }
 #[test]
-fn evaluation_cli_retains_trace_seeds_and_separates_recovery_distributions() {
+fn evaluation_cli_retains_trace_seeds_and_missing_failure_observations() {
     let temp = tempfile::tempdir().unwrap();
     let out = std::process::Command::new(env!("CARGO_BIN_EXE_voice-runtime"))
-        .args([
-            "evaluate",
-            "--runs",
-            "2",
-            "--config",
-            "examples/recovery.json",
-            "--output",
-        ])
+        .args(["evaluate", "--runs", "2", "--output"])
         .arg(temp.path())
         .output()
         .unwrap();
@@ -102,11 +95,9 @@ fn evaluation_cli_retains_trace_seeds_and_separates_recovery_distributions() {
     let summary: serde_json::Value =
         serde_json::from_slice(&std::fs::read(temp.path().join("summary.json")).unwrap()).unwrap();
     assert_eq!(summary["failures"], 0);
-    assert_eq!(summary["recovered_sessions"], 2);
     assert_eq!(summary["trials"][0]["seed"], 7);
     assert_eq!(summary["trials"][1]["seed"], 8);
-    assert!(summary["distributions"]["recovery.llm_ttft"].is_object());
-    assert!(summary["distributions"]["primary.llm_ttft"].is_object());
+    assert!(summary["distributions"]["llm_ttft"].is_object());
     assert!(temp.path().join("trial-0001.jsonl").exists());
     let failures = temp.path().join("failures");
     let out = std::process::Command::new(env!("CARGO_BIN_EXE_voice-runtime"))
@@ -125,10 +116,10 @@ fn evaluation_cli_retains_trace_seeds_and_separates_recovery_distributions() {
     let failed: serde_json::Value =
         serde_json::from_slice(&std::fs::read(failures.join("summary.json")).unwrap()).unwrap();
     assert_eq!(failed["failures"], 2);
-    assert_eq!(failed["distributions"]["primary.llm_ttft"]["count"], 0);
-    assert_eq!(failed["distributions"]["primary.llm_ttft"]["missing"], 2);
+    assert_eq!(failed["distributions"]["llm_ttft"]["count"], 0);
+    assert_eq!(failed["distributions"]["llm_ttft"]["missing"], 2);
     assert_eq!(
-        failed["distributions"]["primary.llm_ttft"]["p99_ms"],
+        failed["distributions"]["llm_ttft"]["p99_ms"],
         serde_json::Value::Null
     );
 }

@@ -1,7 +1,15 @@
 {
   "A": {
+    "maximum_input_age_ms": 0,
+    "maximum_cancel_to_task_exit_ms": null,
     "turns": [
       {
+        "asr_first_partial_ms": 40,
+        "asr_final_wait_ms": 0,
+        "llm_ttft_ms": 80,
+        "tts_first_audio_ms": 60,
+        "endpoint_to_first_audio_ms": 140,
+        "playback_underrun_ms": 0,
         "turn_id": 1,
         "generation_id": 1,
         "endpoint_latency_ms": 240,
@@ -18,17 +26,20 @@
       {
         "name": "input_audio",
         "capacity": 50,
-        "peak": 1
+        "peak": 1,
+        "max_wait_ms": 0
       },
       {
         "name": "provider_events",
         "capacity": 32,
-        "peak": 7
+        "peak": 7,
+        "max_wait_ms": 0
       },
       {
         "name": "cancel_control",
         "capacity": 1,
-        "peak": 0
+        "peak": 0,
+        "max_wait_ms": 0
       },
       {
         "name": "preroll_frames",
@@ -43,17 +54,20 @@
       {
         "name": "journal",
         "capacity": 4096,
-        "peak": 7
+        "peak": 7,
+        "max_wait_ms": 0
       },
       {
         "name": "asr_input_1",
         "capacity": 50,
-        "peak": 6
+        "peak": 6,
+        "max_wait_ms": 40
       },
       {
         "name": "llm_tts_1",
         "capacity": 32,
-        "peak": 15
+        "peak": 15,
+        "max_wait_ms": 2985
       },
       {
         "name": "audio_in_flight_1",
@@ -68,8 +82,16 @@
     ]
   },
   "B": {
+    "maximum_input_age_ms": 0,
+    "maximum_cancel_to_task_exit_ms": null,
     "turns": [
       {
+        "asr_first_partial_ms": 40,
+        "asr_final_wait_ms": 0,
+        "llm_ttft_ms": 80,
+        "tts_first_audio_ms": 60,
+        "endpoint_to_first_audio_ms": 140,
+        "playback_underrun_ms": 0,
         "turn_id": 1,
         "generation_id": 1,
         "endpoint_latency_ms": 240,
@@ -86,17 +108,20 @@
       {
         "name": "input_audio",
         "capacity": 50,
-        "peak": 1
+        "peak": 1,
+        "max_wait_ms": 0
       },
       {
         "name": "provider_events",
         "capacity": 32,
-        "peak": 7
+        "peak": 7,
+        "max_wait_ms": 0
       },
       {
         "name": "cancel_control",
         "capacity": 1,
-        "peak": 0
+        "peak": 0,
+        "max_wait_ms": 0
       },
       {
         "name": "preroll_frames",
@@ -111,17 +136,20 @@
       {
         "name": "journal",
         "capacity": 4096,
-        "peak": 7
+        "peak": 7,
+        "max_wait_ms": 0
       },
       {
         "name": "asr_input_1",
         "capacity": 50,
-        "peak": 6
+        "peak": 6,
+        "max_wait_ms": 40
       },
       {
         "name": "llm_tts_1",
         "capacity": 32,
-        "peak": 15
+        "peak": 15,
+        "max_wait_ms": 2985
       },
       {
         "name": "audio_in_flight_1",
@@ -136,8 +164,16 @@
     ]
   },
   "C": {
+    "maximum_input_age_ms": 0,
+    "maximum_cancel_to_task_exit_ms": 5,
     "turns": [
       {
+        "asr_first_partial_ms": 40,
+        "asr_final_wait_ms": 0,
+        "llm_ttft_ms": 80,
+        "tts_first_audio_ms": 60,
+        "endpoint_to_first_audio_ms": 140,
+        "playback_underrun_ms": 0,
         "turn_id": 1,
         "generation_id": 1,
         "endpoint_latency_ms": 240,
@@ -145,6 +181,12 @@
         "played_samples": 21120
       },
       {
+        "asr_first_partial_ms": 40,
+        "asr_final_wait_ms": 0,
+        "llm_ttft_ms": 80,
+        "tts_first_audio_ms": 60,
+        "endpoint_to_first_audio_ms": 140,
+        "playback_underrun_ms": 0,
         "turn_id": 2,
         "generation_id": 2,
         "endpoint_latency_ms": 240,
@@ -170,17 +212,20 @@
       {
         "name": "input_audio",
         "capacity": 50,
-        "peak": 1
+        "peak": 1,
+        "max_wait_ms": 0
       },
       {
         "name": "provider_events",
         "capacity": 32,
-        "peak": 16
+        "peak": 16,
+        "max_wait_ms": 0
       },
       {
         "name": "cancel_control",
         "capacity": 1,
-        "peak": 0
+        "peak": 0,
+        "max_wait_ms": 0
       },
       {
         "name": "preroll_frames",
@@ -195,17 +240,20 @@
       {
         "name": "journal",
         "capacity": 4096,
-        "peak": 16
+        "peak": 16,
+        "max_wait_ms": 0
       },
       {
         "name": "asr_input_1",
         "capacity": 50,
-        "peak": 6
+        "peak": 6,
+        "max_wait_ms": 40
       },
       {
         "name": "llm_tts_1",
         "capacity": 32,
-        "peak": 15
+        "peak": 15,
+        "max_wait_ms": 1185
       },
       {
         "name": "audio_in_flight_1",
@@ -215,12 +263,14 @@
       {
         "name": "asr_input_2",
         "capacity": 50,
-        "peak": 15
+        "peak": 15,
+        "max_wait_ms": 40
       },
       {
         "name": "llm_tts_2",
         "capacity": 32,
-        "peak": 5
+        "peak": 5,
+        "max_wait_ms": 645
       },
       {
         "name": "audio_in_flight_2",
@@ -235,8 +285,16 @@
     ]
   },
   "D": {
+    "maximum_input_age_ms": 0,
+    "maximum_cancel_to_task_exit_ms": null,
     "turns": [
       {
+        "asr_first_partial_ms": 40,
+        "asr_final_wait_ms": 0,
+        "llm_ttft_ms": 80,
+        "tts_first_audio_ms": 60,
+        "endpoint_to_first_audio_ms": 140,
+        "playback_underrun_ms": 0,
         "turn_id": 1,
         "generation_id": 1,
         "endpoint_latency_ms": 240,
@@ -253,17 +311,20 @@
       {
         "name": "input_audio",
         "capacity": 50,
-        "peak": 1
+        "peak": 1,
+        "max_wait_ms": 0
       },
       {
         "name": "provider_events",
         "capacity": 32,
-        "peak": 7
+        "peak": 7,
+        "max_wait_ms": 0
       },
       {
         "name": "cancel_control",
         "capacity": 1,
-        "peak": 0
+        "peak": 0,
+        "max_wait_ms": 0
       },
       {
         "name": "preroll_frames",
@@ -278,17 +339,20 @@
       {
         "name": "journal",
         "capacity": 4096,
-        "peak": 7
+        "peak": 7,
+        "max_wait_ms": 0
       },
       {
         "name": "asr_input_1",
         "capacity": 50,
-        "peak": 6
+        "peak": 6,
+        "max_wait_ms": 40
       },
       {
         "name": "llm_tts_1",
         "capacity": 32,
-        "peak": 15
+        "peak": 15,
+        "max_wait_ms": 2985
       },
       {
         "name": "audio_in_flight_1",
@@ -303,8 +367,16 @@
     ]
   },
   "E": {
+    "maximum_input_age_ms": 0,
+    "maximum_cancel_to_task_exit_ms": 5,
     "turns": [
       {
+        "asr_first_partial_ms": 40,
+        "asr_final_wait_ms": 0,
+        "llm_ttft_ms": 80,
+        "tts_first_audio_ms": 60,
+        "endpoint_to_first_audio_ms": 140,
+        "playback_underrun_ms": 0,
         "turn_id": 1,
         "generation_id": 1,
         "endpoint_latency_ms": 240,
@@ -312,6 +384,12 @@
         "played_samples": 21120
       },
       {
+        "asr_first_partial_ms": 40,
+        "asr_final_wait_ms": 0,
+        "llm_ttft_ms": 80,
+        "tts_first_audio_ms": 60,
+        "endpoint_to_first_audio_ms": 140,
+        "playback_underrun_ms": 0,
         "turn_id": 2,
         "generation_id": 2,
         "endpoint_latency_ms": 240,
@@ -337,17 +415,20 @@
       {
         "name": "input_audio",
         "capacity": 50,
-        "peak": 1
+        "peak": 1,
+        "max_wait_ms": 0
       },
       {
         "name": "provider_events",
         "capacity": 32,
-        "peak": 16
+        "peak": 16,
+        "max_wait_ms": 0
       },
       {
         "name": "cancel_control",
         "capacity": 1,
-        "peak": 0
+        "peak": 0,
+        "max_wait_ms": 0
       },
       {
         "name": "preroll_frames",
@@ -362,17 +443,20 @@
       {
         "name": "journal",
         "capacity": 4096,
-        "peak": 16
+        "peak": 16,
+        "max_wait_ms": 0
       },
       {
         "name": "asr_input_1",
         "capacity": 50,
-        "peak": 6
+        "peak": 6,
+        "max_wait_ms": 40
       },
       {
         "name": "llm_tts_1",
         "capacity": 32,
-        "peak": 15
+        "peak": 15,
+        "max_wait_ms": 1185
       },
       {
         "name": "audio_in_flight_1",
@@ -382,12 +466,14 @@
       {
         "name": "asr_input_2",
         "capacity": 50,
-        "peak": 15
+        "peak": 15,
+        "max_wait_ms": 40
       },
       {
         "name": "llm_tts_2",
         "capacity": 32,
-        "peak": 5
+        "peak": 5,
+        "max_wait_ms": 645
       },
       {
         "name": "audio_in_flight_2",

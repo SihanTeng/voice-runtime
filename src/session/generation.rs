@@ -14,13 +14,10 @@ use tokio_util::sync::CancellationToken;
 pub(super) struct Generation {
     pub(super) id: Identity,
     pub(super) soft: CancellationToken,
-    pub(super) ordinal: usize,
-    pub(super) tts_done: bool,
-    pub(super) started: bool,
-    pub(super) asr_transcript: crate::transcript::Transcript,
-    pub(super) asr_final_received: bool,
-    pub(super) recovery: bool,
-    pub(super) speech_end_ms: u64,
+    ordinal: usize,
+    tts_done: bool,
+    started: bool,
+    asr_final_received: bool,
 }
 
 impl Session {
@@ -52,10 +49,7 @@ impl Session {
             ordinal: turn.ordinal,
             tts_done: false,
             started: false,
-            asr_transcript: turn.transcript,
             asr_final_received: false,
-            recovery: false,
-            speech_end_ms: turn.last_end,
         });
         if turn
             .tx
@@ -97,7 +91,7 @@ impl Session {
         generation.soft.cancel();
         self.status.cancelled_generations += 1;
     }
-    pub(super) fn on_final(&mut self, turn: u64, update: crate::transcript::AsrUpdate) {
+    pub(super) fn on_final(&mut self, turn: u64, text: String) {
         let Some(generation) = &mut self.generation else {
             self.stale(
                 Identity {
@@ -123,18 +117,7 @@ impl Session {
             self.stale(id, "asr_final");
             return;
         }
-        match generation
-            .asr_transcript
-            .apply(&update, self.config.max_text_bytes)
-        {
-            Ok(true) if update.is_final => {}
-            _ => {
-                self.cancel_current("invalid_asr_final");
-                return;
-            }
-        }
         generation.asr_final_received = true;
-        let text = generation.asr_transcript.text().to_owned();
         let id = generation.id;
         let ordinal = generation.ordinal;
         let soft = generation.soft.clone();
@@ -161,7 +144,6 @@ impl Session {
             Some(id),
             EventData::AsrFinal {
                 text: text.to_string(),
-                update: Some(update),
             },
         );
         self.emit(
@@ -171,24 +153,6 @@ impl Session {
                 heard_history: history.clone(),
             },
         );
-        let models = crate::fake::ResponseProviders {
-            llm: self.factory.llm(ordinal, &text, &history),
-            tts: self.factory.tts(),
-        };
-        self.launch_response(
-            id,
-            models,
-            (self.config.llm.clone(), self.config.tts.clone()),
-            ctx,
-        );
-    }
-    pub(super) fn launch_response(
-        &mut self,
-        id: Identity,
-        models: crate::fake::ResponseProviders,
-        timing: (crate::provider::Timing, crate::provider::Timing),
-        ctx: crate::transport::WorkerContext,
-    ) {
         let (tx, rx, meter) = queue::channel_with_clock(
             format!("llm_tts_{}", id.generation_id),
             self.config.text_capacity,
@@ -204,18 +168,24 @@ impl Session {
             "llm",
             Some(id.turn_id),
             Some(id),
-            transport::llm_worker(models.llm, id, tx, timing.0, ctx.clone()),
+            transport::llm_worker(
+                self.factory.llm(ordinal, &text, &history),
+                id,
+                tx,
+                self.config.llm.clone(),
+                ctx.clone(),
+            ),
         );
         self.spawn(
             "tts",
             Some(id.turn_id),
             Some(id),
             transport::tts_worker(
-                models.tts,
+                self.factory.tts(),
                 id,
                 rx,
                 Arc::new(Semaphore::new(self.config.playback_samples)),
-                timing.1,
+                self.config.tts.clone(),
                 ctx,
                 budget_meter,
             ),

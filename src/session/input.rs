@@ -19,7 +19,6 @@ pub(super) struct InputTurn {
     speaking: bool,
     confirmed: bool,
     pub(super) partial: String,
-    pub(super) transcript: crate::transcript::Transcript,
     partial_changed: u64,
     through: Option<u64>,
     pub(super) tx: Option<queue::Sender<AsrInput>>,
@@ -94,7 +93,6 @@ impl Session {
                 speaking: false,
                 confirmed: false,
                 partial: String::new(),
-                transcript: Default::default(),
                 partial_changed: now,
                 through: None,
                 tx: None,
@@ -167,9 +165,7 @@ impl Session {
             }
             turn.confirmed = true;
             self.accepted_turns += 1;
-            if let Some(generation) = &self.generation
-                && self.config.endpoint.backchannel_max_ms.is_none()
-            {
+            if let Some(generation) = &self.generation {
                 self.emit(
                     Some(generation.id),
                     EventData::InterruptionDecision {
@@ -237,7 +233,6 @@ impl Session {
             return;
         }
         self.turn = Some(turn);
-        self.maybe_interrupt();
         self.maybe_endpoint();
     }
     pub(super) fn maybe_endpoint(&mut self) {
@@ -253,19 +248,7 @@ impl Session {
             self.reject_turn("asr_lag_timeout");
             return;
         }
-        let unstable = self
-            .config
-            .endpoint
-            .min_partial_stability
-            .zip(turn.transcript.stability())
-            .is_some_and(|(minimum, actual)| actual < minimum);
-        if unstable && now.saturating_sub(turn.last_end) >= self.config.endpoint.asr_lag_timeout_ms
-        {
-            self.reject_turn("asr_unstable_timeout");
-            return;
-        }
-        if unstable
-            || lag
+        if lag
             || turn.silence_samples
                 < self
                     .config
@@ -281,53 +264,7 @@ impl Session {
         let turn = self.turn.take().expect("turn checked above");
         self.commit_endpoint(turn);
     }
-    pub(super) fn maybe_interrupt(&mut self) {
-        let Some(limit) = self.config.endpoint.backchannel_max_ms else {
-            return;
-        };
-        let Some(turn) = &self.turn else {
-            return;
-        };
-        let Some(generation) = &self.generation else {
-            return;
-        };
-        if !turn.confirmed {
-            return;
-        }
-        let duration = turn.last_end.saturating_sub(turn.onset);
-        let backchannel = crate::endpoint::is_backchannel(&turn.partial);
-        if !turn.speaking && backchannel && duration < limit {
-            let turn = self.turn.take().expect("checked turn");
-            turn.soft.cancel();
-            self.emit(
-                Some(Identity {
-                    turn_id: turn.id,
-                    generation_id: 0,
-                }),
-                EventData::BackchannelRejected {
-                    text: turn.partial,
-                    duration_ms: duration,
-                },
-            );
-            return;
-        }
-        // ASR classification may stall even after a short utterance ended. Bound the
-        // decision by capture onset, not voiced duration or another ASR callback.
-        if (!turn.partial.trim().is_empty() && !backchannel)
-            || self.clock.now_ms().saturating_sub(turn.onset) >= limit
-        {
-            let id = generation.id;
-            let data = EventData::InterruptionDecision {
-                onset_ms: turn.onset,
-                detected_ms: turn.detected,
-                decision_ms: self.clock.now_ms(),
-                new_turn_id: turn.id,
-            };
-            self.emit(Some(id), data);
-            self.cancel_current("barge_in");
-        }
-    }
-    pub(super) fn on_partial(&mut self, turn: u64, update: crate::transcript::AsrUpdate) {
+    pub(super) fn on_partial(&mut self, turn: u64, text: String, through: u64) {
         let Some(input) = &mut self.turn else {
             self.stale(
                 Identity {
@@ -348,32 +285,11 @@ impl Session {
             );
             return;
         }
-        match input.transcript.apply(&update, self.config.max_text_bytes) {
-            Ok(false) => {
-                self.emit(
-                    Some(Identity {
-                        turn_id: turn,
-                        generation_id: 0,
-                    }),
-                    EventData::AsrResultRejected {
-                        revision: update.revision,
-                        reason: "stale_revision".into(),
-                    },
-                );
-                return;
-            }
-            Err(error) => {
-                self.reject_turn(&error.to_string());
-                return;
-            }
-            Ok(true) => {}
-        }
-        let text = input.transcript.text().to_owned();
         if input.partial != text {
             input.partial_changed = self.clock.now_ms();
         }
         input.partial.clone_from(&text);
-        input.through = Some(update.through_sequence);
+        input.through = Some(through);
         self.emit(
             Some(Identity {
                 turn_id: turn,
@@ -381,10 +297,8 @@ impl Session {
             }),
             EventData::AsrPartial {
                 text,
-                through_sequence: update.through_sequence,
-                update: Some(update),
+                through_sequence: through,
             },
         );
-        self.maybe_interrupt();
     }
 }

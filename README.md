@@ -6,6 +6,8 @@
 
 默认 Provider 都是可配置的 Fake。编排没有用 Pipecat、LiveKit Agents 或 Vocode。
 
+交付聚焦 A–E 的状态、时序与资源释放。模型超时结束当前轮，下一轮由新的用户语音启动。
+
 音频约定：单声道 PCM16 / 16kHz，20ms 一帧（320 sample）。每帧带单调序号和采集时间。
 
 ## 怎么跑
@@ -71,9 +73,7 @@ flowchart LR
 |---|---|
 | `session/input.rs` | 语音候选、ASR 准入、endpoint |
 | `session/generation.rs` | generation 创建/撤销、下一轮上下文、播放切换 |
-| `session/lifecycle.rs` / `recovery.rs` | 任务监督、关闭、一次性超时澄清 |
-| `transcript` / `event` | ASR 修订契约、类型化事件与日志校验 |
-| `evaluation` | 固定种子批量评测、阶段延迟分位数 |
+| `session/lifecycle.rs` | 任务监督和关闭 |
 | `playback` | 唯一能写 sink 的地方，也是播放账本 |
 | `audit` | 只读 trace，独立重建同一本账 |
 | `fake` / `clock` / `wav` | Fake Provider、可注入时钟、文件输入 |
@@ -93,26 +93,9 @@ cargo run --locked --release -- run --scenario A --config examples/timeout.json 
 
 `--seed` / `--jitter-ms` 可以盖掉所有 Provider 的种子和额外抖动。省略某个 Provider 对象时用该阶段默认值；写了对象但漏字段，漏的那些走 `Timing::default()`。所以示例里把 VAD 0/0、ASR 40/0、LLM 80/20、TTS 60/5 都写出来了。TTS 默认 cancel 后仍返回 2 个 chunk。
 
+日志出口统一使用类型化事件，回放严格校验字段、身份和时序。ASR 使用当前文本快照与 final，输入处理序号由 transport 记录；接口不额外引入 segment 或置信度协议。阶段延迟、队列最老项等待与播放断续用于解释排队原因。
+
 核心测试用虚拟时钟，按下一个截止时间推进，不靠一次大幅 `advance` 把不同事件同时叫醒。真实时间打断另有测试，断言开口到停播 ≤250ms。
-
-## 修订、降级和尾延迟评测
-
-```sh
-# 识别改口、segment final、短附和、ASR 迟到时的有界打断
-cargo test --locked --test revisions
-# 原回复中途超时后，新 generation 播放一次本地澄清
-cargo run --locked --release -- run --scenario A --config examples/recovery.json --output output/recovery
-# 100 个固定种子：相关延迟突发、逐次 trace 和 p50/p95/p99
-cargo run --locked --release -- evaluate --scenario A --runs 100 --config examples/tail-latency.json --output output/evaluation
-```
-
-`output/evaluation/summary.json` 保留每次 seed、失败/恢复状态、缺失值和阶段分位数；`trial-0000.jsonl` 等文件可直接交给 `replay`。观察 ASR 首 partial/final 等待、LLM TTFT、TTS 首音频、endpoint→首音频、播放断续及队列最老项等待。原回复与降级回复分别聚合，不把阶段 p99 相加，也不把缺失观测算作 0。这里是 Fake 工作负载的分布，不是生产 SLO；两组各 100 次的已提交结果见 [样例分析](sample-output/ANALYSIS.md#固定种子尾延迟实验)。
-
-`examples/turn-taking.json` 开启可选的 ASR stability 与短附和保护：识别及时的短 `mm-hmm` / `嗯` 保留播放，未知内容最多等到开口后 220ms 再决定打断；VAD/调度延迟仍须另外测量。默认 A–E 策略保持原样。ASR `segment_id/revision/stable_prefix_bytes/is_final` 由 `Transcript` 校验，旧修订不推进新鲜度，segment final 不能替代 endpoint。
-
-降级默认关闭，仅在 LLM/TTS 超时且 factory 提供本地 fallback 时启用，每个原 generation 最多一次。已经播放的前缀先结算，再选“尚未说出”或“回复被切断”的澄清；不会重播原回复或自动重试业务操作。澄清失败、被取消或关闭时仍回收所有任务。Fake fallback 是方波加脚本文本；真实 SDK 和音频缓存需单独实现。
-
-新日志使用 `schema_version: 2`。owner 只能发出类型化 `EventData`；回放拒绝缺少关键字段、错误类型、未知事件/字段和非法修订元数据。历史 v1 样例仍可读取，新增指标没有原始观测时保留缺失。
 
 ## 测试
 
@@ -120,6 +103,7 @@ cargo run --locked --release -- evaluate --scenario A --runs 100 --config exampl
 cargo fmt --all
 cargo test --locked --test scenarios    # A–E，包括旧包跨新回复到达
 cargo test --locked --test endpointing  # 700ms 犹豫，不靠整句关键词
+cargo test --locked --test revisions    # partial 改口，final 文本进入 LLM 请求
 cargo test --locked --test playback     # 词中截断、重复包、UTF-8 边界
 cargo test --locked --test faults       # 超时、panic、关闭、属性案例
 cargo test --locked --test replay       # 独立账本和坏日志
@@ -127,7 +111,7 @@ cargo test --locked --features real-vad --test wav
 sh scripts/check.sh                     # 格式、Clippy、测试、release、hook 自检
 ```
 
-默认 48 项 Rust 测试，打开全部 features 是 49 项，另有 2 项 Python 脚本测试。准备往仓库提交时才需要 `sh scripts/install-hooks.sh`；只跑验收不用装 hook。
+默认 42 项 Rust 测试，打开全部 features 是 43 项，另有 2 项 Python 脚本测试。准备往仓库提交时才需要 `sh scripts/install-hooks.sh`；只跑验收不用装 hook。
 
 CI 在 push / PR 上跑同一套门禁：[GitHub Actions](https://github.com/SihanTeng/voice-runtime/actions/workflows/ci.yml)。
 
@@ -149,11 +133,11 @@ C 的 120ms 拆开是检测 20ms + 连续语音确认 100ms + owner 停播 0ms�
 
 核心链路做完了。另外加了虚拟时钟、WAV、WebRTC VAD、输入 jitter/丢帧/乱序、属性测试和并发关闭、8kHz G.711、从日志出时序图。没做真实 ASR/LLM/TTS、麦克风、AEC、网络服务和部署。journal 先放在有界内存里，正常关闭后再写成 JSONL；进程崩溃会丢还没导出的那一段。
 
-设计上的取舍见 [DESIGN.md](DESIGN.md)。
+设计上的取舍见 [DESIGN.md](DESIGN.md)。可选的固定种子批量评测命令见 [环境与验收说明](docs/SETUP.md#可选批量评测)；正常验收只需上面的三条 Cargo 命令。
 
 ## AI 怎么用的
 
-实现阶段主要用 Codex 写 Rust、补测试、查 Tokio 文档；后续也用它落实事件类型、ASR 修订、超时澄清与延迟评测，并检查回归。
+实现阶段主要用 Codex 写 Rust、补测试、查 Tokio 文档；也用它精简超出题目范围的策略，保留日志校验、取消隔离与关键回归。
 
 架构上这几条是我定的，后面代码都按这个写：
 

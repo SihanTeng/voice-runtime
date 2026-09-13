@@ -1,6 +1,6 @@
 # 设计说明
 
-这是一个单会话 Runtime。
+这是一个单会话 Runtime，交付范围是确定性编排、A–E 时序和完整资源释放。模型超时结束当前轮；自动澄清、短附和识别、真实模型和跨服务恢复留作后续演进。
 
 ## 架构
 
@@ -21,19 +21,19 @@ flowchart TD
 
 `Session::run` 是生命周期 owner。它独占两样东西：当前 generation，以及 Playback。Provider 跑在 JoinSet 里的本地任务中，WebRTC VAD 这种 `!Send` 的实例也留在同一条 LocalSet 线程上，没有为此加 unsafe。
 
-`session.rs` 拆成 `input` / `generation` / `lifecycle` / `recovery` 四个私有模块，只是把转换函数按主题分开。调用仍是同一个 owner 上的同步方法。打断路径上没有因为拆文件多出 await。
+`session.rs` 拆成 `input` / `generation` / `lifecycle` 三个私有模块，只是把转换函数按主题分开。调用仍是同一个 owner 上的同步方法。打断路径上没有因为拆文件多出 await。
 
 ## 状态与事件
 
 输入和输出不要合成一个“听/说”开关。输入大致是 listening → 语音候选 → 确认说话 → 静音候选 → endpoint；输出是 idle → 等 ASR final → 流式播放 → 完成或取消。用户开口时，输出端往往还在播上一句。
 
-身份是三层：`session_id` 跟着整个会话；VAD 确认连续语音时分配 `turn_id`；endpoint 提交时再发一个单调递增的 `generation_id`。ASR / LLM / TTS 事件必须带上这组身份，对不上就丢。还没有 generation 的内部身份用 0，JSONL 中 `generation_id` 为 null。超时澄清复用 turn，但分配新的 generation。后台任务完成和失败也带 generation，旧任务的迟到错误不能取消新回复。
+身份是三层：`session_id` 跟着整个会话；检测到语音候选时分配 `turn_id`，连续语音确认后准入 ASR；endpoint 提交时再发一个单调递增的 `generation_id`。ASR / LLM / TTS 事件必须带上对应身份，对不上就丢。还没有 generation 的内部身份用 0，日志中为 null。后台任务退出和失败也携带其 generation，旧任务的迟到错误不能取消当前轮。
 
 owner 接受事件时打一个全局 `sequence_number`，时间戳是 session 相对单调毫秒。日志至少覆盖：audio frame、speech start/end、endpoint committed、ASR partial/final、LLM / TTS chunk、audio enqueued、playback started / progress / stopped、generation cancelled、stale event dropped、session closed。只看一份 JSONL，应能解释这一次为什么是这个结果，而不用再猜内部状态。
 
-新日志为 schema v2：所有 owner 出口使用 `EventData` 枚举，集中序列化；读取时先检查类型、必需身份、修订元数据和关键时间，再做顺序/播放账本审计。缺字段不再默认成 0，非法日志不会产生看似成功的指标。v1 保持只读兼容，缺少请求事件的阶段耗时为 null。
-
 ## 并发、取消、有限队列
+
+ASR 每次返回可被改写的完整 partial 快照，`finish()` 返回最终文本。transport 按处理的帧填写 `through_sequence`，owner 用它判断新鲜度；改口会重置文本稳定时间，最终文本可以不同于 partial。每轮只接受一次 final，重复或旧轮结果丢弃。此最小接口不承担 segment 合并、置信度校准或业务含义判断。
 
 handle 的最后一个客户端引用消失，视为断开。显式 close、断开、后台 panic、sink 或 journal 挂掉，都走同一条关闭路径。ASR / LLM / TTS 超时只结束当前轮，输入还可以继续听；VAD 超时会关整个 session，因为已经听不见了。同一 generation 上重复 cancel 是幂等的。close 的优先级高于普通事件。
 
@@ -47,8 +47,6 @@ handle 的最后一个客户端引用消失，视为断开。显式 close、断�
 | TTS 比播放快 | 每 generation 8000 sample | 许可覆盖 transport、队列和当前帧。没许可就在 worker 里阻塞，不丢有效 chunk，也不另开发送任务绕过去。阻塞太久单独报错 |
 | Provider 长时间不说话 | 首包 1s / 空闲 0.5s / 累计工作 30s | 只统计 Provider 自己在干活的等待。用户静音和下游背压不算模型卡死。下游连续阻塞另有 2s 超时 |
 | 关闭时队列还有东西 | journal 4096，总事件 10 万 | 未播音频丢掉，当前帧结算，还在路上的上游音频记 stale，停止收包，许可全部释放 |
-
-可选 recovery 只处理当前 LLM/TTS 的 Timeout，每个原 generation 最多一次：先取消并结算实际消费前缀，再用新 generation 播本地澄清。未播时询问重述，已播时说明回复中断并请求确认，不重播前缀、不重试业务动作。fallback 本身也受超时、背压、用户打断和 hard close 约束；再次失败直接结束，只有澄清实际播完才计为 recovered。开启后回复账本上限为 `2 × max_turns`；其他队列和任务上限不变。
 
 同步回调必须有界。第三方代码如果卡住不 yield，Tokio abort 杀不掉。接真实 SDK 时要自己做成可取消的异步适配，或者放到进程外。
 
@@ -78,10 +76,6 @@ Fake TTS 每个词 200ms 方波，字节范围带着词后面的空格。切在�
 **D：噪声。** 连续 120ms 的 VAD 语音才正式打断。80ms 高能量噪声会出候选，随后撤销，原回复播完。这是检测后再等大约 100ms。没有做成“先暂停、确认后再取消”：那样重叠会短一点，但噪声会把回复切碎，还得处理恢复位置。真实 VAD 有 hangover、没有 AEC，这次测的是状态机，不是声学。
 
 **E：迟到包。** 不假设 cancel 之后上游立刻停止。两个旧 TTS chunk 可以在新回复已经开播之后到达。它们记为 stale，不播放，也不会在新回复之后从队列里再冒出来。session 关闭后 sink 拒绝再写。
-
-ASR 更新带 segment/revision、处理到的输入序号、稳定前缀字节数及可选 stability。仅当前 segment 的可变后缀可改写；旧修订不更新文本或新鲜度，已 final 的 segment 只能追加后续 segment。segment final 不代表用户说完；endpoint 仍需要 VAD 静音与完整性规则。开启 stability 门槛后，低稳定度暂不提交，持续不稳定达到 ASR lag 预算便明确结束该轮；未提供该值时使用原来的时间稳定性判断，不能把模型稳定度当作识别准确率。
-
-可选短附和保护只识别窄集合 `mm-hmm/uh-huh/嗯/哦`，不吞掉可能有业务含义的 yes/no。120ms 声学确认后，明确文本可立即打断；短附和在结束后保留旧回复；未知/持续语音最迟在开口后 220ms 回退到声学打断，timer 保证 ASR 没回调也不无限等待。及时 ASR 下的短附和、改口、多 segment 与慢 ASR 均有虚拟时钟回归；该策略无法消除识别错误造成的误打断，也不保证在任意 VAD/调度阻塞下仍满足 250ms。
 
 ## 几个关键问题
 
@@ -113,8 +107,8 @@ Playback sink 的消费结果，以及它写出来的账本。合成完成、入
 
 核心测试注入时钟，用 Tokio paused time 推到下一个截止时间。A–E 断言的是行为：犹豫时不提前播放、打断 250ms 内停、噪声不永久中断、stale 播放计数为 0、队列有上限、关闭后没有还在跑的任务。另外还有真实时间打断、关闭后写 sink 的探针、固定种子属性测试、8 个并发 session、WAV 和真实 VAD。`audit` 从 trace 重建 ReplyRecord，和运行时账本对账。
 
-阶段指标从请求和响应事件计算 ASR 首 partial、endpoint 后 final 等待、LLM TTFT、TTS 首音频及 endpoint→首音频；sink 消费区间的间隙累计为播放 underrun。每个 mpsc 队列以同容量的时间戳 FIFO 记录最老项等待（含清理残留），sample 许可和 watch 不伪造等待值；另记输入年龄、generation cancel→任务退出。停止本身与任务回收是不同的延迟。
+日志是结构化 JSONL，包含 timestamp、session_id、turn_id、generation_id、event_type、sequence_number、payload。owner 通过 `EventData` 枚举统一输出，reader 先校验结构再进行独立账本审计；缺字段不会填 0。只支持当前 schema 3，仓库样例全部重新生成；不维护历史日志兼容分支。
 
-`evaluate` 最多串行运行 1000 个固定种子 session，每次 trace 落盘，summary 保留失败和缺失观测。支持 provider 周期性连续慢包和输入连续丢帧，统计 nearest-rank p50/p95/p99；主回复与降级分开，不相加阶段分位数。没有 endpoint 的失败仍在 trial 中，但没有 turn 样本，读分位数必须同时看失败率和样本数；小样本 p99 不能证明生产 tail latency。
+额外阶段指标记录 ASR 首 partial/final 等待、LLM TTFT、TTS 首音频、endpoint→首音频，以及消费区间之间的播放断续。mpsc 队列以同容量时间戳 FIFO 记录最老项等待，sample 许可/watch 没有此观测时不填 0；另记输入年龄和 generation cancel→任务退出。可选 `evaluate` 命令串行运行有限次固定种子案例，输出逐次日志和分位数，不参与 session 决策；失败和缺失值保留，未到 endpoint 的失败没有 turn 样本，模拟 p99 不能证明生产 SLO。
 
 journal 有界存在内存里，受控结束后才落盘。进程崩溃会丢尚未导出的事件。单 session 默认最多 300 秒。没有完整对话记忆、没有真实模型、没有硬件播放，也没有部署。

@@ -34,7 +34,7 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
-    /// Seeded latency/failure evaluation; retains per-trial JSONL and separates recovery.
+    /// Optional seeded latency/failure evaluation with per-trial JSONL.
     Evaluate {
         #[arg(long,default_value="A",value_parser=["A","B","C","D","E"])]
         scenario: String,
@@ -210,7 +210,7 @@ async fn run_source<E: std::error::Error + 'static>(
     outcome?;
     if (report.close_reason != "active_close"
         && Some(report.close_reason.as_str()) != shutdown.reason())
-        || report.has_unrecovered_failure()
+        || report.has_provider_failure()
     {
         return Err("audio session failed; inspect trace.jsonl".into());
     }
@@ -270,10 +270,9 @@ async fn execute(command: Command, shutdown: Shutdown) -> Result<()> {
             evaluation.summarize();
             write_json(output.join("summary.json"), &evaluation)?;
             println!(
-                "Evaluated {} trials; failures={}, recovered={}; summary: {}",
+                "Evaluated {} trials; failures={}; summary: {}",
                 evaluation.trials.len(),
                 evaluation.failures,
-                evaluation.recovered_sessions,
                 output.join("summary.json").display()
             );
             if shutdown.reason().is_none() && evaluation.failures > 0 {
@@ -329,7 +328,7 @@ async fn execute(command: Command, shutdown: Shutdown) -> Result<()> {
                 .await;
                 failed |= (report.close_reason != "active_close"
                     && Some(report.close_reason.as_str()) != shutdown.reason())
-                    || report.has_unrecovered_failure();
+                    || report.has_provider_failure();
                 metrics.insert(name, write_report(&output.join(name), &report)?);
                 if shutdown.reason().is_some() {
                     break;

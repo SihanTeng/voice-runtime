@@ -77,11 +77,8 @@ impl Session {
                     }
                     if self.generation.as_ref().is_some_and(|g| {
                         task.generation
-                            .map_or(!g.recovery && Some(g.id.turn_id) == task.turn, |id| {
-                                g.id == id
-                            })
-                    }) && (error != ProviderError::Timeout || !self.recover_current(task.stage))
-                    {
+                            .map_or(Some(g.id.turn_id) == task.turn, |id| g.id == id)
+                    }) {
                         self.cancel_current(&error.to_string());
                     }
                 }

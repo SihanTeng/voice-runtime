@@ -1,13 +1,13 @@
 //! Model interfaces are incremental; async transport timing and cancellation are separate.
-use crate::{audio::AudioFrame, provider::ProviderError, transcript::AsrUpdate};
+use crate::{audio::AudioFrame, provider::ProviderError};
 use serde::{Deserialize, Serialize};
 
 pub trait VadProvider {
     fn classify(&mut self, frame: &AudioFrame) -> Result<bool, ProviderError>;
 }
 pub trait AsrProvider {
-    fn accept(&mut self, frame: &AudioFrame, voiced: bool) -> Result<AsrUpdate, ProviderError>;
-    fn finish(&mut self) -> Result<AsrUpdate, ProviderError>;
+    fn accept(&mut self, frame: &AudioFrame, voiced: bool) -> Result<String, ProviderError>;
+    fn finish(&mut self) -> Result<String, ProviderError>;
 }
 pub trait LlmProvider {
     fn next_text(&mut self) -> Result<Option<String>, ProviderError>;
@@ -21,14 +21,7 @@ pub trait TtsProvider {
         samples: usize,
     ) -> Result<Vec<i16>, ProviderError>;
 }
-pub struct ResponseProviders {
-    pub llm: Box<dyn LlmProvider>,
-    pub tts: Box<dyn TtsProvider>,
-}
 pub trait ProviderFactory {
-    fn recovery(&self, _text: &str) -> Option<ResponseProviders> {
-        None
-    }
     fn vad(&self) -> Box<dyn VadProvider>;
     fn asr(&self, ordinal: usize) -> Box<dyn AsrProvider>;
     fn llm(
@@ -40,18 +33,10 @@ pub trait ProviderFactory {
     fn tts(&self) -> Box<dyn TtsProvider>;
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TranscriptPoint {
     pub voiced_ms: u64,
     pub text: String,
-    #[serde(default)]
-    pub segment_id: u64,
-    #[serde(default)]
-    pub stability: Option<f32>,
-    #[serde(default)]
-    pub stable_prefix_bytes: usize,
-    #[serde(default)]
-    pub is_final: bool,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TurnScript {
@@ -69,12 +54,12 @@ pub struct FakeProviders {
 impl Default for FakeProviders {
     fn default() -> Self {
         Self { turns: vec![TurnScript {
-            partials: vec![TranscriptPoint { voiced_ms: 0, text: "Please book it for".into(), ..Default::default() },
-                TranscriptPoint { voiced_ms: 800, text: "Please book it for Wednesday afternoon.".into(), ..Default::default() }],
+            partials: vec![TranscriptPoint { voiced_ms: 0, text: "Please book it for".into() },
+                TranscriptPoint { voiced_ms: 800, text: "Please book it for Wednesday afternoon.".into() }],
             final_text: None, response: "Certainly I can arrange your booking for Wednesday afternoon and send you all the details once everything has been confirmed.".into(),
         }, TurnScript {
-            partials: vec![TranscriptPoint { voiced_ms: 0, text: "Stop. Make it".into(), ..Default::default() },
-                TranscriptPoint { voiced_ms: 600, text: "Stop. Make it Friday instead.".into(), ..Default::default() }],
+            partials: vec![TranscriptPoint { voiced_ms: 0, text: "Stop. Make it".into() },
+                TranscriptPoint { voiced_ms: 600, text: "Stop. Make it Friday instead.".into() }],
             final_text: None, response: "Understood. I will make it Friday instead.".into(),
         }], word_ms: 200, real_vad: false }
     }
@@ -90,12 +75,7 @@ impl FakeProviders {
                 t.response.len() > 16_384
                     || t.partials.len() > 256
                     || t.final_text.as_ref().is_some_and(|t| t.len() > 16_384)
-                    || t.partials.iter().any(|p| {
-                        p.text.len() > 16_384
-                            || !p.text.is_char_boundary(p.stable_prefix_bytes)
-                            || p.stability
-                                .is_some_and(|v| !v.is_finite() || !(0.0..=1.0).contains(&v))
-                    })
+                    || t.partials.iter().any(|p| p.text.len() > 16_384)
                     || t.partials
                         .windows(2)
                         .any(|p| p[0].voiced_ms >= p[1].voiced_ms)
@@ -147,11 +127,11 @@ impl VadProvider for WebRtcVad {
 struct ScriptAsr {
     points: Vec<TranscriptPoint>,
     voiced_samples: u64,
-    update: AsrUpdate,
+    text: String,
     final_text: Option<String>,
 }
 impl AsrProvider for ScriptAsr {
-    fn accept(&mut self, frame: &AudioFrame, voiced: bool) -> Result<AsrUpdate, ProviderError> {
+    fn accept(&mut self, frame: &AudioFrame, voiced: bool) -> Result<String, ProviderError> {
         if voiced {
             self.voiced_samples += frame.valid_samples as u64;
         }
@@ -161,24 +141,12 @@ impl AsrProvider for ScriptAsr {
             .rev()
             .find(|p| p.voiced_ms <= self.voiced_samples / 16)
         {
-            self.update.text.clone_from(&point.text);
-            self.update.segment_id = point.segment_id;
-            self.update.stability = point.stability;
-            self.update.stable_prefix_bytes = point.stable_prefix_bytes;
-            self.update.is_final = point.is_final;
+            self.text.clone_from(&point.text);
         }
-        self.update.revision += 1;
-        self.update.through_sequence = frame.sequence;
-        Ok(self.update.clone())
+        Ok(self.text.clone())
     }
-    fn finish(&mut self) -> Result<AsrUpdate, ProviderError> {
-        self.update.revision += 1;
-        if let Some(text) = &self.final_text {
-            self.update.text.clone_from(text);
-        }
-        self.update.is_final = true;
-        self.update.stable_prefix_bytes = self.update.text.len();
-        Ok(self.update.clone())
+    fn finish(&mut self) -> Result<String, ProviderError> {
+        Ok(self.final_text.clone().unwrap_or_else(|| self.text.clone()))
     }
 }
 struct ScriptLlm {
@@ -209,20 +177,6 @@ impl TtsProvider for ToneTts {
     }
 }
 impl ProviderFactory for FakeProviders {
-    fn recovery(&self, text: &str) -> Option<ResponseProviders> {
-        Some(ResponseProviders {
-            llm: Box::new(ScriptLlm {
-                words: text
-                    .split_inclusive(char::is_whitespace)
-                    .map(str::to_owned)
-                    .collect::<Vec<_>>()
-                    .into_iter(),
-            }),
-            tts: Box::new(ToneTts {
-                samples: self.word_ms as usize * 16,
-            }),
-        })
-    }
     fn vad(&self) -> Box<dyn VadProvider> {
         #[cfg(not(feature = "real-vad"))]
         if self.real_vad {
@@ -242,7 +196,7 @@ impl ProviderFactory for FakeProviders {
                 .map(|t| t.partials.clone())
                 .unwrap_or_default(),
             voiced_samples: 0,
-            update: AsrUpdate::default(),
+            text: String::new(),
             final_text: self.turns.get(ordinal).and_then(|t| t.final_text.clone()),
         })
     }

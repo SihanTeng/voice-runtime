@@ -80,7 +80,7 @@ cargo run --locked --release -- run --scenario all --output output
 cargo run --locked --release -- replay output/C/trace.jsonl --output output/replay
 ```
 
-测试应全部成功，默认共 48 项（Cargo 分测试二进制分别输出结果）；32 个属性案例和 8 个并发 session 已包含在这些测试内部。默认使用虚拟时间，完整句 A 的 endpoint 延迟是 240ms，C 的开口→模拟停播是 120ms，所有场景 stale played 为 0。终端命令都应返回 0；可以紧接命令运行 `echo $?` 查看。
+测试应全部成功，默认共 42 项（Cargo 分测试二进制分别输出结果）；32 个属性案例和 8 个并发 session 已包含在这些测试内部。默认使用虚拟时间，完整句 A 的 endpoint 延迟是 240ms，C 的开口→模拟停播是 120ms，所有场景 stale played 为 0。终端命令都应返回 0；可以紧接命令运行 `echo $?` 查看。
 
 | 产物 | 阅读用途 |
 |---|---|
@@ -101,18 +101,18 @@ cargo run --locked --release --features real-vad -- wav tests/fixtures/speech16.
   --script tests/fixtures/wav-script.json --output output/wav
 ```
 
-门禁依次检查 rustfmt、Clippy warnings-as-errors、默认 48 项/全部 features 49 项 Rust 测试、release 构建、隔离 Git 仓库中的 hook 自检及 2 项开发脚本测试；自检忽略系统/全局 Git 配置，不依赖个人签名密钥，不会安装本项目 hook，也不会修改项目暂存内容。开发脚本 fixture 使用含空格路径，真实启动子进程，验证重启前回收、编译失败恢复和 Ctrl+C。WAV 与脚本随项目提供；ASR/LLM/TTS 仍是脚本。首次编译耗时取决于机器与下载速度，README 的 1–2 秒只指编译后的虚拟场景。
+门禁依次检查 rustfmt、Clippy warnings-as-errors、默认 42 项/全部 features 43 项 Rust 测试、release 构建、隔离 Git 仓库中的 hook 自检及 2 项开发脚本测试；自检忽略系统/全局 Git 配置，不依赖个人签名密钥，不会安装本项目 hook，也不会修改项目暂存内容。开发脚本 fixture 使用含空格路径，真实启动子进程，验证重启前回收、编译失败恢复和 Ctrl+C。WAV 与脚本随项目提供；ASR/LLM/TTS 仍是脚本。首次编译耗时取决于机器与下载速度，README 的 1–2 秒只指编译后的虚拟场景。
 
-可选的修订、降级和尾延迟验收：
+### 可选批量评测
+
+核心验收完成后，可用同一确定性场景检查多组种子与突发延迟，无需额外依赖：
 
 ```sh
-cargo test --locked --test revisions --test recovery --test event_schema --test evaluation
-cargo run --locked --release -- run --scenario A --config examples/recovery.json --output output/recovery
 cargo run --locked --release -- evaluate --runs 100 --config examples/tail-latency.json --output output/evaluation
 cargo run --locked --release -- replay output/evaluation/trial-0000.jsonl --output output/evaluation-replay
 ```
 
-澄清实际播放完成时 recovery 示例返回 0；没有启用 recovery 的超时示例仍返回非零。评测中失败的 trial 不丢弃，summary 区分原回复与澄清，至少有一项失败时命令非零退出。传入 `--real-time` 可用真实时间运行评测；Ctrl+C/SIGTERM 会关闭当前 session 后导出已完成部分，不继续创建下一次 session。
+`summary.json` 包含每次 seed、失败状态和 p50/p95/p99；失败的 trial 不丢弃，缺失耗时为 null，不把阶段分位数相加。存在失败时命令非零退出。可用 `--real-time` 切换真实时间；Ctrl+C/SIGTERM 会关闭当前 session 后导出已有结果，不继续下一次。新版本仅接受 schema 3，旧的本地 `output/` 日志需重新运行生成。
 
 ## 4. 常见问题
 

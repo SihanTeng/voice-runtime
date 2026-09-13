@@ -25,11 +25,12 @@ pub enum Output {
     Vad(CapturedFrame, bool),
     Partial {
         turn: u64,
-        update: crate::transcript::AsrUpdate,
+        text: String,
+        through: u64,
     },
     Final {
         turn: u64,
-        update: crate::transcript::AsrUpdate,
+        text: String,
     },
     TtsRequested(Identity, u64),
     Text(Identity, String),
@@ -102,18 +103,22 @@ pub async fn asr_worker(
         pacer.next(&ctx.soft, &ctx.hard).await?;
         let output = match message {
             AsrInput::Frame(frame, voiced) => {
-                let update = provider.accept(&frame, voiced)?;
-                if update.text.len() > ctx.max_text_bytes {
+                let text = provider.accept(&frame, voiced)?;
+                if text.len() > ctx.max_text_bytes {
                     return Err(ProviderError::Protocol("ASR text limit".into()));
                 }
-                Output::Partial { turn, update }
+                Output::Partial {
+                    turn,
+                    text,
+                    through: frame.sequence,
+                }
             }
             AsrInput::Finish => {
-                let update = provider.finish()?;
-                if update.text.len() > ctx.max_text_bytes {
+                let text = provider.finish()?;
+                if text.len() > ctx.max_text_bytes {
                     return Err(ProviderError::Protocol("ASR final text limit".into()));
                 }
-                ctx.emit(Output::Final { turn, update }).await?;
+                ctx.emit(Output::Final { turn, text }).await?;
                 return Ok(());
             }
         };
