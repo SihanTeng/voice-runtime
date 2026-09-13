@@ -35,7 +35,9 @@ impl AudioFrame {
     }
 
     pub fn validate(&self) -> Result<(), AudioError> {
-        if self.samples.len() != FRAME_SAMPLES || !(1..=FRAME_SAMPLES).contains(&self.valid_samples)
+        if self.samples.len() != FRAME_SAMPLES
+            || !(1..=FRAME_SAMPLES).contains(&self.valid_samples)
+            || self.timestamp.checked_add(FRAME_MS).is_none()
         {
             return Err(AudioError::InvalidFrame);
         }

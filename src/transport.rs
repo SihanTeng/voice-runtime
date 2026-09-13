@@ -86,12 +86,19 @@ pub async fn asr_worker(
     ctx: WorkerContext,
 ) -> Result<(), ProviderError> {
     let mut pacer = Pacer::new(timing, ctx.clock.clone());
+    let mut last_frame: Option<(AudioFrame, bool)> = None;
     loop {
         let message = tokio::select! { biased;
             _ = ctx.hard.cancelled() => return Ok(()),
-            _ = ctx.soft.cancelled() => return Ok(()),
+            _ = ctx.soft.cancelled() => match &last_frame {
+                Some((frame, voiced)) => AsrInput::Frame(frame.clone(), *voiced),
+                None => return Ok(()),
+            },
             message = input.recv() => match message { Some(m) => m, None => return Ok(()) }
         };
+        if let AsrInput::Frame(frame, voiced) = &message {
+            last_frame = Some((frame.clone(), *voiced));
+        }
         pacer.next(&ctx.soft, &ctx.hard).await?;
         let output = match message {
             AsrInput::Frame(frame, voiced) => {

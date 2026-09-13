@@ -158,9 +158,15 @@ async fn repeated_cancel_at_frame_boundaries_and_close_are_idempotent() {
                 .unwrap();
                 let owner = tokio::task::spawn_local(session.run());
                 let mut seq = 0;
-                scenario::feed(&handle, clock.as_ref(), &mut seq, 800, 2000, Some(true)).await;
-                scenario::feed(&handle, clock.as_ref(), &mut seq, 500, 0, Some(false)).await;
-                scenario::wait_until(&mut handle, |s| s.started_replies == 1).await;
+                scenario::feed(&handle, clock.as_ref(), &mut seq, 800, 2000, Some(true))
+                    .await
+                    .unwrap();
+                scenario::feed(&handle, clock.as_ref(), &mut seq, 500, 0, Some(false))
+                    .await
+                    .unwrap();
+                scenario::wait_until(&mut handle, |s| s.started_replies == 1)
+                    .await
+                    .unwrap();
                 clock.sleep_until(clock.now_ms() + offset).await;
                 for _ in 0..100 {
                     handle.cancel_generation().unwrap();

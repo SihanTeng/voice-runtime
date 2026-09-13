@@ -46,6 +46,21 @@ pub struct ReplyRecord {
 }
 
 impl ReplyRecord {
+    pub fn partial_words(&self) -> Vec<(Range<usize>, usize, usize)> {
+        let mut words = std::collections::BTreeMap::new();
+        for chunk in &self.chunks {
+            let entry = words
+                .entry((chunk.text_range.start, chunk.text_range.end))
+                .or_insert((0, chunk.word_samples));
+            entry.0 += chunk.played_samples;
+        }
+        words
+            .into_iter()
+            .filter_map(|((start, end), (played, total))| {
+                (played > 0 && played < total).then_some((start..end, played, total))
+            })
+            .collect()
+    }
     pub fn new(identity: Identity) -> Self {
         Self {
             identity,
@@ -234,7 +249,10 @@ impl Playback {
             || c.samples.is_empty()
             || c.samples.len() > FRAME_SAMPLES
             || c.sample_start != self.expected_sample
-            || c.word_offset + c.samples.len() > c.word_samples
+            || c.word_offset
+                .checked_add(c.samples.len())
+                .is_none_or(|n| n > c.word_samples)
+            || c.text_range.is_empty()
         {
             return Err(PlaybackError::InvalidPacket);
         }
@@ -252,6 +270,21 @@ impl Playback {
         }
         if reply.chunks.len() >= self.max_chunks {
             return Err(PlaybackError::Capacity);
+        }
+        let valid_alignment = match reply.chunks.last() {
+            Some(previous) if previous.text_range == c.text_range => {
+                c.word_samples == previous.word_samples
+                    && c.word_offset == previous.word_offset + previous.samples
+            }
+            Some(previous) => {
+                c.word_offset == 0
+                    && c.text_range.start == previous.text_range.end
+                    && previous.word_offset + previous.samples == previous.word_samples
+            }
+            None => c.word_offset == 0 && c.text_range.start == 0,
+        };
+        if !valid_alignment {
+            return Err(PlaybackError::InvalidPacket);
         }
         reply.chunks.push(ChunkRecord {
             sequence: c.sequence,

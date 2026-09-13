@@ -64,6 +64,37 @@ impl Default for FakeProviders {
 }
 
 pub struct EnergyVad;
+impl FakeProviders {
+    pub fn validate(&self) -> Result<(), ProviderError> {
+        if self.turns.len() > 32
+            || !(20..=10_000).contains(&self.word_ms)
+            || !self.word_ms.is_multiple_of(20)
+            || self.turns.iter().any(|t| {
+                t.response.len() > 16_384
+                    || t.partials.len() > 256
+                    || t.partials.iter().any(|p| p.text.len() > 16_384)
+                    || t.partials
+                        .windows(2)
+                        .any(|p| p[0].voiced_ms >= p[1].voiced_ms)
+            })
+        {
+            return Err(ProviderError::Protocol(
+                "invalid or oversized fake provider script".into(),
+            ));
+        }
+        Ok(())
+    }
+}
+#[cfg(not(feature = "real-vad"))]
+struct MissingVad;
+#[cfg(not(feature = "real-vad"))]
+impl VadProvider for MissingVad {
+    fn classify(&mut self, _: &AudioFrame) -> Result<bool, ProviderError> {
+        Err(ProviderError::Protocol(
+            "real-vad feature is required".into(),
+        ))
+    }
+}
 impl VadProvider for EnergyVad {
     fn classify(&mut self, frame: &AudioFrame) -> Result<bool, ProviderError> {
         Ok(frame.samples.iter().any(|s| s.unsigned_abs() >= 1000))
@@ -143,6 +174,10 @@ impl TtsProvider for ToneTts {
 }
 impl ProviderFactory for FakeProviders {
     fn vad(&self) -> Box<dyn VadProvider> {
+        #[cfg(not(feature = "real-vad"))]
+        if self.real_vad {
+            return Box::new(MissingVad);
+        }
         #[cfg(feature = "real-vad")]
         if self.real_vad {
             return Box::<WebRtcVad>::default();

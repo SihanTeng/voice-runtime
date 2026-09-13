@@ -21,10 +21,18 @@ jobs:
         run: rustup show
       - name: Quality gate
         run: sh scripts/check.sh
+      - name: Generate and independently replay artifacts
+        run: |
+          target/release/voice-runtime run --scenario all --output output
+          target/release/voice-runtime replay output/C/trace.jsonl --output output/replay
+          target/release/voice-runtime wav tests/fixtures/speech16.wav --script tests/fixtures/wav-script.json --output output/wav
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: voice-runtime-${{ matrix.os }}
-          path: target/release/voice-runtime
+          path: |
+            target/release/voice-runtime
+            output/
+            tests/fixtures/LICENSE.libfvad
           if-no-files-found: error
   quality-gate:
     if: always()

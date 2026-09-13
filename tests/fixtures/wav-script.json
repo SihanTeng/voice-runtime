@@ -1,0 +1,9 @@
+{
+  "turns": [
+    {"partials": [{"voiced_ms": 0, "text": "This is a scripted transcript."}], "response": "This response uses real VAD and scripted model output."},
+    {"partials": [{"voiced_ms": 0, "text": "This is another scripted transcript."}], "response": "The runtime has detected another speech segment."},
+    {"partials": [{"voiced_ms": 0, "text": "The audio fixture is complete."}], "response": "The offline demonstration is complete."}
+  ],
+  "word_ms": 200,
+  "real_vad": true
+}

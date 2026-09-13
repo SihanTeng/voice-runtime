@@ -110,15 +110,44 @@ impl SessionConfig {
             || self.max_turns > 1024
             || self.max_text_bytes > 1_048_576
             || self.max_session_ms == 0
+            || self.max_session_ms > 3_600_000
+            || self.max_tasks > 1024
+            || self.max_events > 100_000
+            || self.max_chunks_per_reply > 100_000
+            || [
+                self.input_capacity,
+                self.asr_capacity,
+                self.event_capacity,
+                self.text_capacity,
+                self.log_capacity,
+            ]
+            .iter()
+            .any(|n| *n > 65_536)
+            || self.backpressure_ms == 0
+            || self.shutdown_grace_ms == 0
             || self.endpoint.barge_in_ms < 100
         {
             return Err(SessionError::Configuration);
+        }
+        for timing in [&self.vad, &self.asr, &self.llm, &self.tts] {
+            if timing.jitter_ms > 60_000
+                || timing.first_ms > 300_000
+                || timing.interval_ms > 300_000
+                || timing.late_chunks > 128
+                || timing.first_timeout_ms == 0
+                || timing.idle_timeout_ms == 0
+                || timing.total_timeout_ms == 0
+            {
+                return Err(SessionError::Configuration);
+            }
         }
         Ok(())
     }
 }
 #[derive(Debug, thiserror::Error)]
 pub enum SessionError {
+    #[error("scenario did not reach the expected state within 15 seconds")]
+    ScenarioDeadline,
     #[error("invalid session configuration")]
     Configuration,
     #[error("session is closed")]
@@ -129,6 +158,7 @@ pub enum SessionError {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Snapshot {
+    pub idle: bool,
     pub first_audio_ms: Option<u64>,
     pub started_replies: usize,
     pub completed_replies: usize,
@@ -179,8 +209,11 @@ impl SessionHandle {
         }
     }
     pub fn close(&self) {
+        self.close_with_reason("active_close");
+    }
+    pub fn close_with_reason(&self, reason: &'static str) {
         if !self.client.close.is_cancelled() {
-            self.client.reason.set("active_close");
+            self.client.reason.set(reason);
             self.client.close.cancel();
         }
     }
@@ -254,6 +287,7 @@ pub struct Session {
     turn: Option<InputTurn>,
     generation: Option<Generation>,
     preroll: VecDeque<(AudioFrame, bool)>,
+    preroll_meter: QueueMeter,
     frame_validator: FrameValidator,
     turn_counter: u64,
     generation_counter: u64,
@@ -294,6 +328,9 @@ impl Session {
             config.max_chunks_per_reply,
             config.max_turns,
         );
+        let preroll_meter = QueueMeter::new("preroll_frames", 15);
+        let status_meter = QueueMeter::new("status_watch", 1);
+        status_meter.observe(1);
         Ok((
             Self {
                 config,
@@ -310,10 +347,11 @@ impl Session {
                 status_tx,
                 status: Snapshot::default(),
                 tasks: JoinSet::new(),
-                meters: vec![im, om, cm],
+                meters: vec![im, om, cm, preroll_meter.clone(), status_meter],
                 turn: None,
                 generation: None,
                 preroll: VecDeque::new(),
+                preroll_meter,
                 frame_validator: FrameValidator::default(),
                 turn_counter: 0,
                 generation_counter: 0,
@@ -451,6 +489,7 @@ impl Session {
             self.preroll.pop_front();
         }
         self.preroll.push_back((audio.clone(), voiced));
+        self.preroll_meter.observe(self.preroll.len());
         if self.turn.is_none() && voiced {
             self.turn_counter += 1;
             let id = self.turn_counter;
@@ -907,6 +946,7 @@ impl Session {
             if self.failed.is_some() || journal_failed.get() {
                 break;
             }
+            self.status.idle = self.turn.is_none() && self.generation.is_none();
             self.status_tx.send_replace(self.status.clone());
             let clock = self.clock.clone();
             let wake = self

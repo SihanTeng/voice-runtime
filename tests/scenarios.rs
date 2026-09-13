@@ -15,6 +15,10 @@ async fn run(name: &str) -> SessionReport {
         .await
 }
 fn invariants(report: &SessionReport) {
+    let audit = voice_runtime::audit::analyze(&report.events);
+    assert!(audit.violations.is_empty(), "{:?}", audit.violations);
+    assert_eq!(audit.replies, report.replies);
+    assert_eq!(audit.metrics.stale_chunk_played_count, 0);
     assert!(report.trace_complete);
     assert_eq!(report.active_tasks, 0);
     assert!(
