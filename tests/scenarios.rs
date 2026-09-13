@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use voice_runtime::{
+    audio::{FRAME_MS, SAMPLE_RATE},
     clock::TokioClock,
     scenario,
     session::{SessionConfig, SessionReport},
@@ -46,35 +47,69 @@ fn invariants(report: &SessionReport) {
 
 #[tokio::test(start_paused = true)]
 async fn a_complete_utterance_streams_without_added_queue_delay() {
-    let r = run("A").await;
-    invariants(&r);
-    let endpoint = r
-        .events
-        .iter()
-        .find(|e| e.event_type == "endpoint_committed")
-        .unwrap();
-    let audio = r
-        .events
-        .iter()
-        .find(|e| e.event_type == "playback_started")
-        .unwrap();
-    assert!(audio.timestamp - endpoint.timestamp <= 180);
-    assert_eq!(r.replies[0].heard_text(), r.replies[0].generated_text);
+    // Include non-tick-aligned latencies and zero latency: the allowance is for
+    // scheduling, not a fixed total that only fits the default provider settings.
+    for (llm_ms, tts_ms) in [(0, 0), (13, 47), (80, 60), (150, 110)] {
+        let mut config = SessionConfig::default();
+        config.llm.first_ms = llm_ms;
+        config.tts.first_ms = tts_ms;
+        let r = tokio::task::LocalSet::new()
+            .run_until(scenario::run("A", config, Rc::new(TokioClock::default())))
+            .await;
+        invariants(&r);
+        let recorded: SessionConfig =
+            serde_json::from_value(r.events[0].payload["config"].clone()).unwrap();
+        let endpoint = r
+            .events
+            .iter()
+            .find(|e| e.event_type == "endpoint_committed")
+            .unwrap();
+        let consumed = r
+            .events
+            .iter()
+            .find(|e| e.event_type == "playback_progress")
+            .unwrap();
+        let first_audio = consumed.payload["start_ms"].as_u64().unwrap();
+        // ASR has already streamed its first packet; finalization uses interval_ms.
+        let provider_budget =
+            recorded.asr.interval_ms + recorded.llm.first_ms + recorded.tts.first_ms;
+        let elapsed = first_audio - endpoint.timestamp;
+        assert!(elapsed >= provider_budget);
+        assert!(
+            elapsed - provider_budget <= 2 * FRAME_MS,
+            "provider budget {provider_budget}ms, actual {elapsed}ms"
+        );
+        assert_eq!(r.replies[0].heard_text(), r.replies[0].generated_text);
+    }
 }
 #[tokio::test(start_paused = true)]
 async fn b_seven_hundred_ms_hesitation_never_commits_or_plays() {
     let r = run("B").await;
     invariants(&r);
+    // Use captured input truth, independently of endpoint/speech-end decisions.
+    let speech_end = r
+        .events
+        .iter()
+        .filter(|e| e.event_type == "audio_frame" && e.payload["speech_truth"] == true)
+        .map(|e| {
+            e.payload["capture_ms"].as_u64().unwrap()
+                + e.payload["valid_samples"].as_u64().unwrap() * 1000 / SAMPLE_RATE as u64
+        })
+        .max()
+        .unwrap();
     assert!(!r.events.iter().any(|e| {
         ["endpoint_committed", "playback_started"].contains(&e.event_type.as_str())
-            && e.timestamp < 1500
+            && e.timestamp < speech_end
     }));
     let endpoint = r
         .events
         .iter()
         .find(|e| e.event_type == "endpoint_committed")
         .unwrap();
-    assert!(endpoint.timestamp - 1500 <= 400);
+    let config: SessionConfig =
+        serde_json::from_value(r.events[0].payload["config"].clone()).unwrap();
+    assert!(endpoint.timestamp - speech_end <= config.endpoint.complete_silence_ms + 2 * FRAME_MS);
+    assert!(endpoint.timestamp - speech_end <= 400); // External acceptance budget.
 }
 #[tokio::test(start_paused = true)]
 async fn c_barge_in_stops_within_250ms_and_history_excludes_unheard_suffix() {

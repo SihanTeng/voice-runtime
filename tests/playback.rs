@@ -42,7 +42,7 @@ fn stop_between_ticks_counts_actual_samples_and_excludes_partial_word() {
 }
 
 #[test]
-fn complete_word_is_heard_and_duplicate_or_invalid_utf8_ranges_are_rejected() {
+fn complete_word_is_heard_and_duplicate_packets_are_rejected() {
     let id = Identity {
         turn_id: 1,
         generation_id: 1,
@@ -58,4 +58,38 @@ fn complete_word_is_heard_and_duplicate_or_invalid_utf8_ranges_are_rejected() {
     p.start_ready(20);
     p.settle(40).unwrap();
     assert_eq!(p.replies[0].heard_text(), "Friday ");
+}
+
+#[test]
+fn utf8_ranges_reject_split_codepoints_without_mutating_playback() {
+    let id = Identity {
+        turn_id: 1,
+        generation_id: 1,
+    };
+    let mut p = Playback::new(Box::<CountingSink>::default(), 8000, 100, 2);
+    p.activate(id).unwrap();
+    p.append_text(id, "周五 ", 100).unwrap();
+
+    // Each Chinese character occupies three bytes. Exercise invalid start AND end
+    // boundaries, then prove rejected packets did not advance sequence/sample state.
+    for range in [1..7, 0..2, 0..4, 0..8] {
+        let mut invalid = packet(id, 0, 0, 0);
+        invalid.chunk.text_range = range;
+        assert!(matches!(
+            p.enqueue(invalid),
+            Err(PlaybackError::InvalidPacket)
+        ));
+        assert!(p.replies[0].chunks.is_empty());
+        assert_eq!(p.depth_samples(), 0);
+        assert_eq!(p.peak_samples, 0);
+    }
+    p.enqueue(packet(id, 0, 0, 0)).unwrap();
+    p.enqueue(packet(id, 1, 320, 320)).unwrap();
+    p.start_ready(0);
+    p.settle(20).unwrap();
+    assert_eq!(p.replies[0].heard_text(), "");
+    p.start_ready(20);
+    p.settle(40).unwrap();
+    assert_eq!(p.replies[0].heard_ranges(), vec![0..7]);
+    assert_eq!(p.replies[0].heard_text(), "周五 ");
 }
