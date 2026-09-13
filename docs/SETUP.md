@@ -117,8 +117,4 @@ cargo run --locked --release --features real-vad -- wav tests/fixtures/speech16.
 | `not a git repository`（安装 hook 时） | 源码压缩包无需安装 hook，直接运行/测试；仅在准备提交的 Git checkout 中运行 `scripts/install-hooks.sh`。 |
 | `examples/timeout.json` 返回非零 | 这是故意注入 Provider 超时的预期结果；查看其输出 trace，普通 A–E 应返回 0。 |
 
-无需权限或安装条件时，可以直接阅读已提交的 [样例分析](../sample-output/ANALYSIS.md)、[设计说明](../DESIGN.md)和[评审验证记录](../sample-output/review-validation.json)。不应将模拟消费的停播时间当作真实设备或声学测量。
-
-## 5. 历史安装流程验证范围
-
-从已提交源码导出到含空格的临时目录，没有 `.git`、没有现成 `target/`，按上述顺序完成默认 28 项测试、A–E、独立 replay 和真实 WAV/VAD。默认测试含首次 debug 编译实际耗时 23.799 秒，全场景命令含首次 release 编译耗时 10.361 秒；replay 指标与在线结果相同，账本和已消费 WAV 逐字节相同。此次复用了本机已安装的 Rust 1.96.1 和 crate 下载缓存，并禁止 Cargo 联网，因此验证的是干净源码/构建目录的可运行性，没有冒充全新操作系统安装或首次下载验证；完整记录见 [setup-validation.json](../sample-output/setup-validation.json)。
+无需权限或安装条件时，可以直接阅读已提交的 [样例分析](../sample-output/ANALYSIS.md)、[设计说明](../DESIGN.md)和[验收索引](ACCEPTANCE.md)。验收索引记录公开仓库新克隆的运行结果与双平台 CI 入口；不应将模拟消费的停播时间当作真实设备或声学测量。
