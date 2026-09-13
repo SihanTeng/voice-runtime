@@ -2,6 +2,11 @@
 
 所有项目命令均在包含 `Cargo.toml`、`Cargo.lock`、`rust-toolchain.toml` 的根目录执行。接受完整 Git 仓库或源码压缩包；压缩包应保留隐藏目录 `.githooks/`，完整门禁的 hook 自检会读取它。仅运行或测试不要求配置 Git 用户名、安装项目 hook、申请模型账号或创建 `.env`。
 
+```sh
+git clone https://github.com/SihanTeng/voice-runtime.git
+cd voice-runtime
+```
+
 ## 1. 安装系统工具
 
 已有 Python 3.9+ 时，优先使用项目入口：
@@ -17,7 +22,7 @@
 
 每次运行的日志放在 `output/dev/run-*/`，不会覆盖此前热重载证据。信号退出及重启会先等待当前 session 关闭和日志导出；开发模式没有热替换正在运行的 Rust 函数，也不跨重启保留上下文。
 
-本地验证平台是 macOS Apple Silicon。Linux 提供 Ubuntu/Debian 安装步骤和 GitHub Actions 配置，但未在本次交付中实际执行 Linux/托管 CI；原生 Windows 的 shell/hook 流程未验证，可在已有 WSL Ubuntu 中按 Linux 步骤操作。
+本地验证平台是 macOS Apple Silicon；Linux/macOS 托管门禁的结果与产物见 [GitHub Actions](https://github.com/SihanTeng/voice-runtime/actions/workflows/ci.yml)。CI 验证不等于全新系统安装流程实测，原生 Windows 的 shell/hook 流程未验证，可在已有 WSL Ubuntu 中按 Linux 步骤操作。
 
 **macOS：** 安装 Apple Command Line Tools，提供编译器、链接器和 Git；若已安装可跳过。
 
