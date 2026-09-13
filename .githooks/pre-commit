@@ -1,0 +1,11 @@
+#!/bin/sh
+# Validate only the index. Never stash, modify the worktree, or add files.
+set -eu
+voice_root=$(git rev-parse --show-toplevel)
+voice_snapshot=$(mktemp -d "${TMPDIR:-/tmp}/voice-index.XXXXXX")
+trap 'rm -rf "$voice_snapshot"' EXIT HUP INT TERM
+git checkout-index --all --prefix="$voice_snapshot/"
+cd "$voice_snapshot"
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+export CARGO_TARGET_DIR="$voice_root/target/hook"
+sh scripts/check.sh
