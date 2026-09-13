@@ -72,7 +72,7 @@ cargo --version
 
 ## 3. 按顺序验收
 
-最短流程与 [README](../README.md#面试官快速验收) 相同：
+最短流程与 [README](../README.md#怎么跑) 相同：
 
 ```sh
 cargo test --locked
@@ -117,4 +117,4 @@ cargo run --locked --release --features real-vad -- wav tests/fixtures/speech16.
 | `not a git repository`（安装 hook 时） | 源码压缩包无需安装 hook，直接运行/测试；仅在准备提交的 Git checkout 中运行 `scripts/install-hooks.sh`。 |
 | `examples/timeout.json` 返回非零 | 这是故意注入 Provider 超时的预期结果；查看其输出 trace，普通 A–E 应返回 0。 |
 
-无需权限或安装条件时，可以直接阅读已提交的 [样例分析](../sample-output/ANALYSIS.md)、[设计说明](../DESIGN.md)和 [README 的快速验收步骤](../README.md#面试官快速验收)。不应将模拟消费的停播时间当作真实设备或声学测量。
+无需权限或安装条件时，可以直接阅读已提交的 [样例分析](../sample-output/ANALYSIS.md)、[设计说明](../DESIGN.md)和 [README 的运行步骤](../README.md#怎么跑)。不应将模拟消费的停播时间当作真实设备或声学测量。
