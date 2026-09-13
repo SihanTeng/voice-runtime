@@ -1,6 +1,6 @@
 # 本次运行分析
 
-`trace.jsonl` 是默认配置下 C 场景的完整记录，735 个事件；`metrics.json` 汇总 A–E。`manifest.json` 保存生成配置，`completion-validation.json` 记录核心补齐阶段的工作区版本和产物哈希，`dev-validation.json` 记录随后开发入口与信号退出的验证；这些历史记录中的路径和哈希对应当时版本，旧材料可从 Git 历史查阅，不表示仍存在于当前工作区。两次 release 运行的 A–E trace 均逐字节相同；`sequence.md` 可直接在支持 Mermaid 的 Markdown 阅读器中查看。
+`trace.jsonl` 是默认配置下 C 场景的完整记录，735 个事件；`metrics.json` 汇总 A–E。`manifest.json` 保存生成配置；自动化验证结果见公开仓库中对应提交的 GitHub Actions。两次 release 运行的 A–E trace 均逐字节相同；`sequence.md` 可直接在支持 Mermaid 的 Markdown 阅读器中查看。
 
 | 事件序号 | 相对时间 | 发生了什么 |
 |---:|---:|---|
