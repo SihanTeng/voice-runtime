@@ -1,0 +1,88 @@
+{
+  "reviewed_commit": "d8f26f4",
+  "validated_source_commit": "c513d2134a58e86f791d2e8b63a285c8cbd4ad90",
+  "test_commit": "522420c",
+  "revision_started_utc": "2026-09-13T07:42:44+00:00",
+  "validation_recorded_utc": "2026-09-13T07:55:39.206449+00:00",
+  "revision_elapsed_minutes_at_validation": 12.92,
+  "quality_gate": {
+    "command": "sh scripts/check.sh (staged snapshot, enforced by pre-commit)",
+    "exit_code": 0,
+    "default_tests_passed": 28,
+    "all_feature_tests_passed": 29,
+    "counts_include_real_clock_barge_in_and_eight_session_stress": true,
+    "parameter_cases_within_tests": {
+      "first_audio_latency_combinations": 4,
+      "additional_hesitation_phrases": 4,
+      "seeded_property_cases_per_feature_suite": 32
+    },
+    "rustfmt": "passed",
+    "clippy_warnings_as_errors": "passed",
+    "release_all_features": "passed",
+    "staged_hook_fixtures": "passed",
+    "commit_and_gate_log_span_seconds": 36.817
+  },
+  "behavior_preservation": {
+    "reference_source_commit": "522420c",
+    "scenarios": "A-E",
+    "comparison": "byte-for-byte",
+    "artifacts": [
+      "trace.jsonl",
+      "metrics.json",
+      "playback-truth.json",
+      "played.wav",
+      "sequence.mmd",
+      "lifecycle.json"
+    ],
+    "all_equal": true,
+    "delivered_sample_C_trace_unchanged": true,
+    "sha256": {
+      "A": {
+        "trace.jsonl": "40fc1af2ad21a8e29ff16b2b4e0d571c99553914e990b2b695c435a8db7bf1f9",
+        "metrics.json": "33acfd081bfe8e4c5ec5c6ca88ea8c8d5e810ff2ffcf56f0ac6cde92e377952c",
+        "playback-truth.json": "3240b01b71a3d4cd92dc42e1ec3c521e9eb6800518426f27b5a112c40355872f",
+        "played.wav": "8f8d94b21016a388173be3966e9f12df72f05b339378ea0f53c39891676cfd62",
+        "sequence.mmd": "17533f6636157f069282716e5c822b4979262611a0dac1f1341c30c2c03d4e4d",
+        "lifecycle.json": "b5a7bfc5324f76015d3e541bbfc583d49b8032a9c03a21c95be062dd98eba7a2"
+      },
+      "B": {
+        "trace.jsonl": "867667df42bf014c7f90c44645db482e76bfdc458e70e98e1efe18c1be0e36bf",
+        "metrics.json": "33acfd081bfe8e4c5ec5c6ca88ea8c8d5e810ff2ffcf56f0ac6cde92e377952c",
+        "playback-truth.json": "3240b01b71a3d4cd92dc42e1ec3c521e9eb6800518426f27b5a112c40355872f",
+        "played.wav": "58e4db11ab1997290ced76e678452ba551485ddcbf28fd42947c4c21b398972c",
+        "sequence.mmd": "c3b2bdbf0f1fe909fbb488d44f3759626a6f1664bb2ac4508efe206111024327",
+        "lifecycle.json": "b5a7bfc5324f76015d3e541bbfc583d49b8032a9c03a21c95be062dd98eba7a2"
+      },
+      "C": {
+        "trace.jsonl": "17e309c81c3f01408c214ab17d7fcd653507928712c35803158ad3f0a1c81d3c",
+        "metrics.json": "d0363de82ffea1530ba4eafd293c3e48e8758736c5af0ac8863bda29a781f149",
+        "playback-truth.json": "825941bb967fb5ca8fa0eed9d706df67843c5dc645974b11b17db86651c0901e",
+        "played.wav": "bdb799bfa700ef8458f2f4adafd66aee0e50a29839b7d795ce55aef14059f9c3",
+        "sequence.mmd": "b86dd1c9b300b637a5ef9fa201141b90bd1426aa8527cafd3577f0b837ab5fac",
+        "lifecycle.json": "b5a7bfc5324f76015d3e541bbfc583d49b8032a9c03a21c95be062dd98eba7a2"
+      },
+      "D": {
+        "trace.jsonl": "4e4dcd5250fc9e08b1abc207deac435b9e009b152512203e2b83178a4dbfa176",
+        "metrics.json": "33acfd081bfe8e4c5ec5c6ca88ea8c8d5e810ff2ffcf56f0ac6cde92e377952c",
+        "playback-truth.json": "3240b01b71a3d4cd92dc42e1ec3c521e9eb6800518426f27b5a112c40355872f",
+        "played.wav": "8f8d94b21016a388173be3966e9f12df72f05b339378ea0f53c39891676cfd62",
+        "sequence.mmd": "4b80633afb3dee57043e6d4799af5f3518ee0ffa6c2e2675bb12233a0a5fbac8",
+        "lifecycle.json": "b5a7bfc5324f76015d3e541bbfc583d49b8032a9c03a21c95be062dd98eba7a2"
+      },
+      "E": {
+        "trace.jsonl": "b8460b9a46e07f77f76745672c51b07a37618cbd5c190e71d0065e6ce7a22164",
+        "metrics.json": "d0363de82ffea1530ba4eafd293c3e48e8758736c5af0ac8863bda29a781f149",
+        "playback-truth.json": "825941bb967fb5ca8fa0eed9d706df67843c5dc645974b11b17db86651c0901e",
+        "played.wav": "bdb799bfa700ef8458f2f4adafd66aee0e50a29839b7d795ce55aef14059f9c3",
+        "sequence.mmd": "b86dd1c9b300b637a5ef9fa201141b90bd1426aa8527cafd3577f0b837ab5fac",
+        "lifecycle.json": "b5a7bfc5324f76015d3e541bbfc583d49b8032a9c03a21c95be062dd98eba7a2"
+      }
+    }
+  },
+  "delivered_trace_replay": {
+    "command": "target/release/voice-runtime replay sample-output/trace.jsonl --output output/review-replay",
+    "exit_code": 0
+  },
+  "hosted_ci_executed": false,
+  "grading": "No external evaluator or score guarantee; this record reports observed checks only."
+}
