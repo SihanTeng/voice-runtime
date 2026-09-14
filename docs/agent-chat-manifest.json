@@ -1,0 +1,209 @@
+{
+  "main_sessions": 3,
+  "excluded_internal_sessions": [
+    {
+      "id": "01a09967-40cb-7651-b7b1-16b1d3d006c0",
+      "started_at": "2026-09-13T06:14:35.982Z",
+      "source": {
+        "subagent": {
+          "other": "guardian"
+        }
+      },
+      "reason": "内部子代理会话，不计为候选人与 Agent 的主会话"
+    },
+    {
+      "id": "01a099ba-3117-7ed2-a8f6-3c4d26816368",
+      "started_at": "2026-09-13T07:45:11.484Z",
+      "source": {
+        "subagent": {
+          "other": "guardian"
+        }
+      },
+      "reason": "内部子代理会话，不计为候选人与 Agent 的主会话"
+    },
+    {
+      "id": "01a09a85-7f25-7201-a6b0-ebb1e5c13249",
+      "started_at": "2026-09-13T11:27:15.275Z",
+      "source": {
+        "subagent": {
+          "other": "guardian"
+        }
+      },
+      "reason": "内部子代理会话，不计为候选人与 Agent 的主会话"
+    },
+    {
+      "id": "01a09a8b-3bcb-74f1-b085-4962a8baf52b",
+      "started_at": "2026-09-13T11:33:31.244Z",
+      "source": {
+        "subagent": {
+          "other": "guardian"
+        }
+      },
+      "reason": "内部子代理会话，不计为候选人与 Agent 的主会话"
+    },
+    {
+      "id": "01a09ab3-d805-7391-9787-26200f48240f",
+      "started_at": "2026-09-13T12:17:52.673Z",
+      "source": {
+        "subagent": {
+          "other": "guardian"
+        }
+      },
+      "reason": "内部子代理会话，不计为候选人与 Agent 的主会话"
+    },
+    {
+      "id": "01a09abc-4095-7403-87f0-9edfa948fd03",
+      "started_at": "2026-09-13T12:27:03.735Z",
+      "source": {
+        "subagent": {
+          "other": "guardian"
+        }
+      },
+      "reason": "内部子代理会话，不计为候选人与 Agent 的主会话"
+    },
+    {
+      "id": "01a09bbe-d442-7323-9d16-937ae165f8d9",
+      "started_at": "2026-09-13T17:09:29.820Z",
+      "source": {
+        "subagent": {
+          "other": "guardian"
+        }
+      },
+      "reason": "内部子代理会话，不计为候选人与 Agent 的主会话"
+    },
+    {
+      "id": "01a09bea-0489-71e0-a400-c77ff8ebbee1",
+      "started_at": "2026-09-13T17:56:40.238Z",
+      "source": {
+        "subagent": {
+          "other": "guardian"
+        }
+      },
+      "reason": "内部子代理会话，不计为候选人与 Agent 的主会话"
+    }
+  ],
+  "line_count": 10202,
+  "user_records": 25,
+  "compacted_records": 3,
+  "sessions": [
+    {
+      "id": "01a09959-80a5-7bf0-b0a6-565dc09da90e",
+      "started_at": "2026-09-13T05:59:34.821Z",
+      "source_file": "rollout-2026-09-13T13-59-34-01a09959-80a5-7bf0-b0a6-565dc09da90e.jsonl",
+      "source_sha256": "a152651c7c4925e5e0e9009450c381957517be69bf365ce7a7f276b3765b59de",
+      "source_bytes": 4215577,
+      "source_line_count": 1015,
+      "last_record_timestamp": "2026-09-13T11:36:57.874Z",
+      "user_records": 6,
+      "compacted_records": 1,
+      "compactions": [
+        {
+          "line": 702,
+          "timestamp": "2026-09-13T07:42:14.195Z",
+          "preceding_source_range": [
+            1,
+            701
+          ]
+        }
+      ],
+      "record_types": {
+        "session_meta": 1,
+        "event_msg": 473,
+        "response_item": 408,
+        "world_state": 4,
+        "turn_context": 6,
+        "token_usage_record": 122,
+        "compacted": 1
+      },
+      "exported_types": {
+        "message": 42,
+        "custom_tool_call": 114,
+        "custom_tool_call_output": 114,
+        "function_call": 2,
+        "function_call_output": 2
+      }
+    },
+    {
+      "id": "01a09a8e-987f-7500-aa8a-17487b8ba252",
+      "started_at": "2026-09-13T11:37:11.575Z",
+      "source_file": "rollout-2026-09-13T19-37-11-01a09a8e-987f-7500-aa8a-17487b8ba252.jsonl",
+      "source_sha256": "ef4887e9abdfc04cc2e6db15b3827bc9c7e354d04495a2f41a7963ac9c20a773",
+      "source_bytes": 9436843,
+      "source_line_count": 1837,
+      "last_record_timestamp": "2026-09-13T18:01:14.679Z",
+      "user_records": 16,
+      "compacted_records": 2,
+      "compactions": [
+        {
+          "line": 581,
+          "timestamp": "2026-09-13T12:26:55.353Z",
+          "preceding_source_range": [
+            1,
+            580
+          ]
+        },
+        {
+          "line": 1250,
+          "timestamp": "2026-09-13T16:59:42.765Z",
+          "preceding_source_range": [
+            582,
+            1249
+          ]
+        }
+      ],
+      "record_types": {
+        "session_meta": 1,
+        "event_msg": 868,
+        "response_item": 718,
+        "world_state": 5,
+        "turn_context": 15,
+        "token_usage_record": 228,
+        "compacted": 2
+      },
+      "exported_types": {
+        "message": 81,
+        "custom_tool_call": 208,
+        "custom_tool_call_output": 208,
+        "function_call": 5,
+        "function_call_output": 5
+      }
+    },
+    {
+      "id": "01a09eb1-0fca-7313-b105-f639b4750979",
+      "started_at": "2026-09-14T06:53:19.212Z",
+      "source_file": "rollout-2026-09-14T14-53-19-01a09eb1-0fca-7313-b105-f639b4750979.jsonl",
+      "source_sha256": "f9d25b5037945fde2f967a8eabb868ffb55aa739756a2ef9cb29ef61a2fc9722",
+      "source_bytes": 251616,
+      "source_line_count": 63,
+      "last_record_timestamp": "2026-09-14T06:57:20.128Z",
+      "user_records": 3,
+      "compacted_records": 0,
+      "compactions": [],
+      "record_types": {
+        "session_meta": 1,
+        "event_msg": 27,
+        "response_item": 25,
+        "world_state": 1,
+        "turn_context": 2,
+        "token_usage_record": 7
+      },
+      "exported_types": {
+        "message": 10,
+        "custom_tool_call": 6,
+        "custom_tool_call_output": 5
+      }
+    }
+  ],
+  "redaction_counts": {
+    "private_key": 0,
+    "home_path": 437,
+    "email": 1,
+    "credential": 0,
+    "jwt": 0,
+    "bearer": 0,
+    "assignment": 0,
+    "url_auth": 0,
+    "phone": 0,
+    "git_identity": 33
+  }
+}

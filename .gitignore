@@ -1,5 +1,6 @@
 /target/
 /output/
+/tmp/
 *.profraw
 .DS_Store
 __pycache__/
